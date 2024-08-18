@@ -1,0 +1,294 @@
+newmtl TakataSteeringWheel1Mtl
+Material Color
+Ka 1 1 1
+Kd 1 1 1
+Ks 0.0627451 0.0627451 0.0627451 
+
+d 1
+
+Ns 0
+
+map_Ka TakataSteeringWheel1_diff.png
+map_Kd TakataSteeringWheel1_diff.png
+map_d TakataSteeringWheel1_diff.png
+
+newmtl Meshpart1Mtl
+Material Color
+Ka 0.00715504 0.018913 0.0315514
+Kd 0.00715504 0.018913 0.0315514
+Ks 0.00283396 0.00749103 0.0124968 
+
+d 1
+
+Ns 0
+
+newmtl Meshpart55Mtl
+Material Color
+Ka 0.940601 0.940601 0.940601
+Kd 0.940601 0.940601 0.940601
+Ks 0.372552 0.372552 0.372552 
+
+d 0.301961
+
+Ns 0
+
+newmtl TakataSteeringWheel2Mtl
+Material Color
+Ka 0.0111261 0.0869013 0.493616
+Kd 0.0111261 0.0869013 0.493616
+Ks 0.000698107 0.00545263 0.030972 
+
+d 1
+
+Ns 0
+
+newmtl Meshpart61Mtl
+Material Color
+Ka 0.00258583 0.00258583 0.00258583
+Kd 0.00258583 0.00258583 0.00258583
+Ks 0.00102419 0.00102419 0.00102419 
+
+d 1
+
+Ns 0
+
+newmtl TakataSteeringWheel3Mtl
+Material Color
+Ka 0.00258583 0.00258583 0.00258583
+Kd 0.00258583 0.00258583 0.00258583
+Ks 0.000101405 0.000101405 0.000101405 
+
+d 1
+
+Ns 0
+
+map_Ka TakataSteeringWheel3_diff.png
+map_Kd TakataSteeringWheel3_diff.png
+map_d TakataSteeringWheel3_diff.png
+
+map_Bump TakataSteeringWheel3_nmap.png
+
+map_Ns TakataSteeringWheel3_spec.png
+
+newmtl Meshpart3Mtl
+Material Color
+Ka 0.0277553 0.0277553 0.0277553
+Kd 0.0277553 0.0277553 0.0277553
+Ks 0.0109933 0.0109933 0.0109933 
+
+d 1
+
+Ns 0
+
+newmtl Meshpart69Mtl
+Material Color
+Ka 0.0160677 0.0160677 0.0160677
+Kd 0.0160677 0.0160677 0.0160677
+Ks 0.00636407 0.00636407 0.00636407 
+
+d 1
+
+Ns 0
+
+newmtl TakataSteeringWheel4Mtl
+Material Color
+Ka 1 1 1
+Kd 1 1 1
+Ks 0.396078 0.396078 0.396078 
+
+d 1
+
+Ns 0
+
+map_Ka TakataSteeringWheel1_diff.png
+map_Kd TakataSteeringWheel1_diff.png
+map_d TakataSteeringWheel1_diff.png
+
+newmtl Meshpart2Mtl
+Material Color
+Ka 0.940601 0.940601 0.940601
+Kd 0.940601 0.940601 0.940601
+Ks 0.372552 0.372552 0.372552 
+
+d 1
+
+Ns 0
+
+newmtl Meshpart4Mtl
+Material Color
+Ka 1 1 1
+Kd 1 1 1
+Ks 0.396078 0.396078 0.396078 
+
+d 1
+
+Ns 0
+
+map_Ka Meshpart4_diff.png
+map_Kd Meshpart4_diff.png
+map_d Meshpart4_diff.png
+
+newmtl L3Mtl
+Material Color
+Ka 0.315763 0 0
+Kd 0.315763 0 0
+Ks 0.125067 0 0 
+
+d 1
+
+Ns 0
+
+newmtl Meshpart5Mtl
+Material Color
+Ka 0.00715504 0.018913 0.0315514
+Kd 0.00715504 0.018913 0.0315514
+Ks 0.00283396 0.00749103 0.0124968 
+
+d 0.301961
+
+Ns 0
+
+newmtl Meshpart8Mtl
+Material Color
+Ka 0.598942 0.605484 0.645555
+Kd 0.598942 0.605484 0.645555
+Ks 0.237228 0.239819 0.255691 
+
+d 1
+
+Ns 0
+
+newmtl Meshpart12Mtl
+Material Color
+Ka 0.0277553 0.0277553 0.0277553
+Kd 0.0277553 0.0277553 0.0277553
+Ks 0.0109933 0.0109933 0.0109933 
+
+d 0.301961
+
+Ns 0
+
+newmtl Meshpart16Mtl
+Material Color
+Ka 0.0151752 0.0151752 0.0151752
+Kd 0.0151752 0.0151752 0.0151752
+Ks 0.00601058 0.00601058 0.00601058 
+
+d 1
+
+Ns 0
+
+newmtl Meshpart25Mtl
+Material Color
+Ka 0.409826 0 0.409826
+Kd 0.409826 0 0.409826
+Ks 0.162323 0 0.162323 
+
+d 1
+
+Ns 0
+
+newmtl Meshpart27Mtl
+Material Color
+Ka 0.124741 0.113921 0.121986
+Kd 0.124741 0.113921 0.121986
+Ks 0.0494072 0.0451216 0.0483159 
+
+d 1
+
+Ns 0
+
+newmtl Meshpart33Mtl
+Material Color
+Ka 1 1 1
+Kd 1 1 1
+Ks 0.396078 0.396078 0.396078 
+
+d 0.901961
+
+Ns 0
+
+map_Ka Meshpart4_diff.png
+map_Kd Meshpart4_diff.png
+map_d Meshpart4_diff.png
+
+newmtl Meshpart36Mtl
+Material Color
+Ka 0.00258583 0.00258583 0.00258583
+Kd 0.00258583 0.00258583 0.00258583
+Ks 0.00102419 0.00102419 0.00102419 
+
+d 0.2
+
+Ns 0
+
+newmtl L2Mtl
+Material Color
+Ka 0.560499 0.0169881 0.00775103
+Kd 0.560499 0.0169881 0.00775103
+Ks 0.222002 0.0067286 0.00307001 
+
+d 1
+
+Ns 0
+
+newmtl Meshpart87Mtl
+Material Color
+Ka 0.103634 0.108711 0.14198
+Kd 0.103634 0.108711 0.14198
+Ks 0.0410472 0.0430581 0.0562353 
+
+d 0.2
+
+Ns 0
+
+newmtl Meshpart57Mtl
+Material Color
+Ka 0.315763 0 0
+Kd 0.315763 0 0
+Ks 0.125067 0 0 
+
+d 0.301961
+
+Ns 0
+
+newmtl Meshpart86Mtl
+Material Color
+Ka 0.673049 0.173439 0.042987
+Kd 0.673049 0.173439 0.042987
+Ks 0.26658 0.0686955 0.0170262 
+
+d 0.4
+
+Ns 0
+
+newmtl Meshpart58Mtl
+Material Color
+Ka 0.560499 0.0169881 0.00775103
+Kd 0.560499 0.0169881 0.00775103
+Ks 0.222002 0.0067286 0.00307001 
+
+d 0.301961
+
+Ns 0
+
+newmtl Meshpart59Mtl
+Material Color
+Ka 0.598942 0.605484 0.645555
+Kd 0.598942 0.605484 0.645555
+Ks 0.237228 0.239819 0.255691 
+
+d 0.301961
+
+Ns 0
+
+newmtl Meshpart85Mtl
+Material Color
+Ka 0.673049 0.173439 0.042987
+Kd 0.673049 0.173439 0.042987
+Ks 0.26658 0.0686955 0.0170262 
+
+d 1
+
+Ns 0
+
