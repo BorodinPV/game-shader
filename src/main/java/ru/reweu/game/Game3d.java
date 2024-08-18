@@ -48,7 +48,6 @@ public class Game3d {
     private Vector3f modelPosition = new Vector3f(0.0f, 0.7f, 0.0f); // начальная позиция модели
     private Vector3f carPosition = new Vector3f(0.0f, 0.0f, 0.0f); // Позиция машины
     private Vector3f carDirection = new Vector3f(1.0f, 0.0f, 0f); // Направление машины (вдоль оси Z)
-//    private float carSpeed = 0f; // Скорость движения машины
     private float turnSpeed = 30.0f; // Скорость поворота машины
     private boolean cameraAttachedToModel = false; // Флаг привязки камеры
     private float carRotationAngle = 0f; // Угол поворота машины вокруг оси Y
@@ -131,6 +130,7 @@ public class Game3d {
     private void loop() {
 
         while (!glfwWindowShouldClose(window)) {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             float currentFrame = (float) glfwGetTime();
             setDeltaTime(currentFrame - getLastFrame());
             setLastFrame(currentFrame);
@@ -142,11 +142,8 @@ public class Game3d {
                 camera.updateCameraPosition(carPosition, carDirection, 6.0f, 2f); // Настройте расстояние и высоту по желанию
             }
 
-            glClearColor(0.0f, 0.5f, 0.0f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
             Matrix4f view = camera.getViewMatrix();
-            Matrix4f projection = new Matrix4f().perspective((float) Math.toRadians(45.0f), 800f / 600f, 0.1f, 100.0f);
+            Matrix4f projection = new Matrix4f().perspective((float) Math.toRadians(45.0f), 800f / 600f, 0.1f, 1000.0f);
 
             // Отрисовка непрозрачных объектов
             renderOpaqueObjects(view, projection);
@@ -165,21 +162,36 @@ public class Game3d {
 
     private void renderOpaqueObjects(Matrix4f view, Matrix4f projection) {
         worldShaderProgram.use();
-        // Позиция и цвет солнечного света
+
+        glClearColor(0.6f, 0.7f, 0.9f, 1.0f); // Голубой цвет, напоминающий небо
+        // Установка параметров солнечного света
         glUniform3f(glGetUniformLocation(worldShaderProgram.getProgramId(), "sunDirection"), -1.0f, -10.0f, -1.0f);
-        glUniform3f(glGetUniformLocation(worldShaderProgram.getProgramId(), "sunColor"), 1.0f, 0.9f, 0.6f);
+        glUniform3f(glGetUniformLocation(worldShaderProgram.getProgramId(), "sunColor"), 1.0f, 0.9f, 0.7f);
         glUniform1f(glGetUniformLocation(worldShaderProgram.getProgramId(), "sunIntensity"), 0.6f);
 
-        // Цвет амбиентного освещения
+        // Установка параметров амбиентного освещения
         glUniform3f(glGetUniformLocation(worldShaderProgram.getProgramId(), "ambientColor"), 0.3f, 0.3f, 0.3f);
 
+        // Установка параметров тумана
+//        Vector3f cameraPosition = camera.getPosition();
+//        glUniform3f(glGetUniformLocation(worldShaderProgram.getProgramId(), "fogColor"), 0.5f, 0.6f, 0.7f); // Голубовато-серый туман
+//        glUniform1f(glGetUniformLocation(worldShaderProgram.getProgramId(), "fogDensity"), 0.2f); // Плотность тумана
+//        glUniform3f(glGetUniformLocation(worldShaderProgram.getProgramId(), "cameraPos"), cameraPosition.x, cameraPosition.y, cameraPosition.z);
+
+        // Параметры атмосферы
+        worldShaderProgram.setUniform("skyColor", new Vector3f(0.6f, 0.7f, 0.9f));
+        worldShaderProgram.setUniform("atmosphereStart", 50.0f);
+        worldShaderProgram.setUniform("atmosphereEnd", 200.0f);
+
+        // Параметры облаков
+        worldShaderProgram.setUniform("cloudDensity", 1f); // Попробуйте разные значения, чтобы найти оптимальные
+        worldShaderProgram.setUniform("cloudColor", new Vector3f(1.0f, 1.0f, 1.0f)); // Белые облака
+
+        // Установка матриц вида и проекции
         worldShaderProgram.setUniform("view", view);
         worldShaderProgram.setUniform("projection", projection);
 
-        worldShaderProgram.setUniform("model", new Matrix4f().scaling(100.0f));
-        skyboxTexture.bind();
-        cubeMesh.render();
-
+        // Рендеринг земли
         worldShaderProgram.setUniform("model", new Matrix4f());
         groundTexture.bind();
         planeMesh.render();

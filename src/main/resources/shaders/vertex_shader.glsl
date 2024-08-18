@@ -14,9 +14,15 @@ uniform mat4 projection;   // Проекционная матрица
 
 void main()
 {
-    FragPos = vec3(model * vec4(aPos, 1.0));  // Позиция фрагмента в мировом пространстве
-    Normal = mat3(transpose(inverse(model))) * aNormal;  // Трансформация нормалей в мировое пространство
+    // Позиция фрагмента в мировом пространстве
+    FragPos = vec3(model * vec4(aPos, 1.0));
 
-    gl_Position = projection * view * model * vec4(aPos, 1.0);  // Вычисляем положение вершины в пространстве экрана
-    TexCoord = aTexCoord;  // Передаем текстурные координаты
+    // Трансформация нормалей в мировое пространство
+    Normal = mat3(transpose(inverse(model))) * aNormal;
+
+    // Вычисляем положение вершины в пространстве экрана
+    gl_Position = projection * view * vec4(FragPos, 1.0);
+
+    // Передаем текстурные координаты
+    TexCoord = aTexCoord;
 }
