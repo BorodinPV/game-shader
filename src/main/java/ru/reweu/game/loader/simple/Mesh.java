@@ -1,4 +1,4 @@
-package ru.reweu.game;
+package ru.reweu.game.loader.simple;
 
 import static org.lwjgl.opengl.GL20.GL_ARRAY_BUFFER;
 import static org.lwjgl.opengl.GL20.GL_FLOAT;

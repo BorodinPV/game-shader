@@ -1,4 +1,4 @@
-package ru.reweu.game;
+package ru.reweu.game.loader.simple;
 
 import static org.lwjgl.opengl.GL11.GL_LINEAR;
 import static org.lwjgl.opengl.GL11.GL_RGBA;

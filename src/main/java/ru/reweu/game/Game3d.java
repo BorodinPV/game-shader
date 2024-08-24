@@ -8,6 +8,8 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import ru.reweu.game.car.Car;
 import ru.reweu.game.loader.ModelLoader;
+import ru.reweu.game.loader.simple.Mesh;
+import ru.reweu.game.loader.simple.Texture;
 import ru.reweu.game.render.ShaderProgram;
 
 import java.util.ArrayList;
@@ -29,12 +31,11 @@ import static org.lwjgl.opengl.GL13C.GL_MULTISAMPLE;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.KHRRobustness.GL_NO_ERROR;
 import static org.lwjgl.system.MemoryUtil.NULL;
-import static ru.reweu.game.StaticMesh.getCubeMesh;
-import static ru.reweu.game.StaticMesh.getPlaneMesh;
+import static ru.reweu.game.loader.simple.StaticMesh.getCubeMesh;
+import static ru.reweu.game.loader.simple.StaticMesh.getPlaneMesh;
 import static ru.reweu.game.car.Car.carSpeed;
 import static ru.reweu.game.main.Variables.*;
 import static ru.reweu.game.render.ShaderRender.renderObjects;
-import static ru.reweu.game.weather.Fog.startFog;
 
 public class Game3d {
 

@@ -1,4 +1,4 @@
-package ru.reweu.game;
+package ru.reweu.game.loader.simple;
 
 public class StaticMesh {
 
