@@ -19,8 +19,11 @@ import static org.lwjgl.opengl.GL30.glTexParameteri;
 import static org.lwjgl.stb.STBImage.stbi_load;
 import static org.lwjgl.system.MemoryStack.stackPush;
 
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
+import java.nio.file.Paths;
 import org.lwjgl.stb.STBImage;
 import org.lwjgl.system.MemoryStack;
 
@@ -38,8 +41,16 @@ public class Texture {
             IntBuffer heightBuffer = stack.mallocInt(1);
             IntBuffer channelsBuffer = stack.mallocInt(1);
 
+            URL resourceUrl = Texture.class.getResource(resourcePath);
+            String filePath;
+            try {
+                filePath = Paths.get(resourceUrl.toURI()).toString();
+            } catch (URISyntaxException e) {
+                throw new RuntimeException(e);
+            }
+
             // Загружаем изображение
-            ByteBuffer image = stbi_load(resourcePath, widthBuffer, heightBuffer, channelsBuffer, 4);
+            ByteBuffer image = stbi_load(filePath, widthBuffer, heightBuffer, channelsBuffer, 4);
             if (image == null) {
                 throw new RuntimeException("Failed to load texture: " + STBImage.stbi_failure_reason());
             }

@@ -12,14 +12,17 @@ import static org.lwjgl.opengl.GL11.glTexImage2D;
 import static org.lwjgl.opengl.GL11.glTexParameteri;
 import static org.lwjgl.system.MemoryStack.stackPush;
 
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
+import java.nio.file.Paths;
 import org.lwjgl.stb.STBImage;
 import org.lwjgl.system.MemoryStack;
 
 public class TextureLoader {
 
-    public static int loadTexture(String filePath) {
+    public static int loadTexture(String resourcePath) {
         int width, height;
         ByteBuffer image;
 
@@ -28,7 +31,13 @@ public class TextureLoader {
             IntBuffer widthBuffer = stack.mallocInt(1);
             IntBuffer heightBuffer = stack.mallocInt(1);
             IntBuffer compBuffer = stack.mallocInt(1);
-
+            URL resourceUrl = TextureLoader.class.getResource(resourcePath);
+            String filePath;
+            try {
+                filePath = Paths.get(resourceUrl.toURI()).toString();
+            } catch (URISyntaxException e) {
+                throw new RuntimeException(e);
+            }
             // Загружаем изображение
             image = STBImage.stbi_load(filePath, widthBuffer, heightBuffer, compBuffer, 4);
             if (image == null) {

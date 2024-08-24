@@ -105,9 +105,9 @@ public class Game3d {
         meshes.add(ModelLoader.loadModel("/models/suburban/wheel.obj", 0.2f));
 
         skyboxTexture = new
-                Texture("C:\\Users\\pborodin\\Desktop\\job\\game\\game-shader\\src\\main\\resources\\textures\\skybox.png");
+                Texture("/textures/skybox.png");
         groundTexture = new
-                Texture("C:\\Users\\pborodin\\Desktop\\job\\game\\game-shader\\src\\main\\resources\\textures\\landscape.png");
+                Texture("/textures/landscape.png");
 
         camera = new
                 Camera(new Vector3f(0.0f, 1.0f, 3.0f), new

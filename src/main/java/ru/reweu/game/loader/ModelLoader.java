@@ -19,7 +19,6 @@ import static org.lwjgl.assimp.Assimp.aiTextureType_OPACITY;
 import static org.lwjgl.assimp.Assimp.aiTextureType_SHININESS;
 import static org.lwjgl.assimp.Assimp.aiTextureType_SPECULAR;
 import static ru.reweu.game.loader.Utils.addWheel;
-import static ru.reweu.game.loader.Utils.addWheels;
 
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -44,7 +43,7 @@ import org.lwjgl.system.MemoryStack;
 public class ModelLoader {
     public static Mesh[] loadModel(String resourcePath, float scale) {
         URL resourceUrl = ModelLoader.class.getResource(resourcePath);
-        String filePath = null;
+        String filePath;
         try {
             filePath = Paths.get(resourceUrl.toURI()).toString();
         } catch (URISyntaxException e) {
@@ -174,7 +173,7 @@ public class ModelLoader {
             if (!texturePath.isEmpty()) {
                 System.out.println("Found texture path: " + texturePath);
                 String fullPath =
-                    "C:\\Users\\pborodin\\Desktop\\job\\game\\game-shader\\src\\main\\resources\\models\\suburban\\" + texturePath;
+                    "/models/suburban/" + texturePath;
                 try {
                     Texture texture = new Texture(fullPath);
                     return texture;
