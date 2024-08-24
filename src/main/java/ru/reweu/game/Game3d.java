@@ -59,6 +59,7 @@ public class Game3d {
     private Car car;
 
     private List<ru.reweu.game.loader.Mesh[]> meshes = new ArrayList<>();
+    private List<ru.reweu.game.loader.Mesh[]> landscape = new ArrayList<>();
 
     public void run() {
         System.out.println("Starting LWJGL " + Version.getVersion() + "!");
@@ -101,9 +102,10 @@ public class Game3d {
         shaderProgram = new ShaderProgram("/shaders/vertex.glsl", "/shaders/fragment.glsl");
         car = new Car();
         cubeMesh = getCubeMesh();
-        planeMesh = getPlaneMesh();
+//        planeMesh = getPlaneMesh();
         meshes.add(ModelLoader.loadModel("/models/suburban/suburban.obj", 0.2f));
         meshes.add(ModelLoader.loadModel("/models/suburban/wheel.obj", 0.2f));
+        landscape.add(ModelLoader.loadModel("/models/landscape/landscape.obj", 1f));
 
         skyboxTexture = new
                 Texture("/textures/skybox.png");
@@ -191,8 +193,8 @@ public class Game3d {
 
         // Рендеринг земли
         worldShaderProgram.setUniform("model", new Matrix4f());
-        groundTexture.bind();
-        planeMesh.render();
+//        groundTexture.bind();
+//        planeMesh.render();
     }
 
     private void renderTransparentObjects(Matrix4f view, Matrix4f projection) {
@@ -203,6 +205,15 @@ public class Game3d {
                         .rotateY((float) Math.toRadians(carRotationAngle))
                         .scale(meshRender.getScale());
                 renderObjects(shaderProgram, mesh, model, camera, view, projection);
+            }
+        }
+        for (ru.reweu.game.loader.Mesh[] mesh : landscape) {
+            for (ru.reweu.game.loader.Mesh meshRender : mesh) {
+                Matrix4f model = new Matrix4f().translate((new Vector3f(0.0f, -10.0f, 0.0f)))
+//                    .translate(new Vector3f(0.0f, 0.0f, 0.0f))
+//                    .rotateY((float) Math.toRadians(carRotationAngle))
+                    .scale(meshRender.getScale());
+                renderObjects(worldShaderProgram, mesh, model, camera, view, projection);
             }
         }
     }
