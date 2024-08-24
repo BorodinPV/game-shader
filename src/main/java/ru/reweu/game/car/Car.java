@@ -1,5 +1,6 @@
 package ru.reweu.game.car;
 
+import lombok.Getter;
 import lombok.Setter;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -8,6 +9,7 @@ import ru.reweu.game.render.ShaderProgram;
 import static ru.reweu.game.loader.Utils.getWheel;
 import static ru.reweu.game.render.ShaderRender.renderObjects;
 
+@Getter
 @Setter
 public class Car {
 
@@ -18,7 +20,6 @@ public class Car {
 
     public void updateWheelRotation(
             float deltaTime,
-//            float carSpeed,
             float carRotationAngle,
             Vector3f carPosition,
             ShaderProgram shaderProgram
@@ -32,7 +33,7 @@ public class Car {
         Matrix4f model1 = new Matrix4f()
                 .translate(carPosition) // Перемещение машины
                 .rotateY((float) Math.toRadians(carRotationAngle)) // Поворот машины
-                .translate(new Vector3f(0.64f, 0.26f, -1.09f)) // Перемещение к центру колеса
+                .translate(new Vector3f(0.64f, 0.26f, -2.3f)) // Перемещение к центру колеса
                 .rotateY((float) Math.toRadians(wheelTurnAngle)) // Поворот колес
                 .rotateX(wheelRotationAngle) // Вращение колес
                 .scale(wheeelMeshes1[0].getScale());
@@ -42,7 +43,7 @@ public class Car {
         Matrix4f model2 = new Matrix4f()
                 .translate(carPosition) // Перемещение машины
                 .rotateY((float) Math.toRadians(carRotationAngle)) // Поворот машины
-                .translate(new Vector3f(-0.6f, 0.26f, -1.09f)) // Перемещение к центру колеса
+                .translate(new Vector3f(-0.6f, 0.26f, -2.3f)) // Перемещение к центру колеса
                 .rotateY((float) Math.toRadians(wheelTurnAngle)) // Поворот колес
                 .rotateX(wheelRotationAngle) // Вращение колес
                 .rotateY((float) Math.toRadians(180)) // Дополнительное вращение на 180 градусов
@@ -53,7 +54,7 @@ public class Car {
         Matrix4f model3 = new Matrix4f()
                 .translate(carPosition) // Перемещение машины
                 .rotateY((float) Math.toRadians(carRotationAngle)) // Поворот машины
-                .translate(new Vector3f(0.64f, 0.26f, 1.24f)) // Перемещение к центру колеса
+                .translate(new Vector3f(0.64f, 0.26f, 0.03f)) // Перемещение к центру колеса
                 .rotateX(wheelRotationAngle) // Вращение колес
                 .scale(wheeelMeshes3[0].getScale());
         renderObjects(shaderProgram, wheeelMeshes3, model3, null, null, null);
@@ -62,7 +63,7 @@ public class Car {
         Matrix4f model4 = new Matrix4f()
                 .translate(carPosition) // Перемещение машины
                 .rotateY((float) Math.toRadians(carRotationAngle)) // Поворот машины
-                .translate(new Vector3f(-0.6f, 0.26f, 1.24f)) // Перемещение к центру колеса
+                .translate(new Vector3f(-0.6f, 0.26f, 0.03f)) // Перемещение к центру колеса
                 .rotateX(wheelRotationAngle) // Вращение колес
                 .rotateY((float) Math.toRadians(180)) // Дополнительное вращение на 180 градусов
                 .scale(wheeelMeshes4[0].getScale());

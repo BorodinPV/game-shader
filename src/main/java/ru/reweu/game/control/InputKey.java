@@ -2,6 +2,7 @@
 //
 //import org.joml.Vector3f;
 //import ru.reweu.game.Camera;
+//import ru.reweu.game.car.Car;
 //
 //import static org.lwjgl.glfw.GLFW.*;
 //import static ru.reweu.game.car.Car.carSpeed;
@@ -9,7 +10,7 @@
 //
 //public class InputKey {
 //
-//    private void processInput(long window, Camera camera) {
+//    private void processInput(Camera camera, long window, Car car) {
 //        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
 //            camera.processKeyboard(GLFW_KEY_W, getDeltaTime(), true);
 //        }
@@ -108,4 +109,5 @@
 //            System.exit(-1);
 //        }
 //    }
+//
 //}

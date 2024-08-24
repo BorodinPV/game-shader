@@ -34,6 +34,7 @@ import static ru.reweu.game.StaticMesh.getPlaneMesh;
 import static ru.reweu.game.car.Car.carSpeed;
 import static ru.reweu.game.main.Variables.*;
 import static ru.reweu.game.render.ShaderRender.renderObjects;
+import static ru.reweu.game.weather.Fog.startFog;
 
 public class Game3d {
 
@@ -100,13 +101,13 @@ public class Game3d {
         car = new Car();
         cubeMesh = getCubeMesh();
         planeMesh = getPlaneMesh();
-        meshes.add(ModelLoader.loadModel("/all/chevy/suburban.obj", 0.2f));
-        meshes.add(ModelLoader.loadModel("/all/chevy/wheel.obj", 0.2f));
+        meshes.add(ModelLoader.loadModel("/models/suburban/suburban.obj", 0.2f));
+        meshes.add(ModelLoader.loadModel("/models/suburban/wheel.obj", 0.2f));
 
         skyboxTexture = new
-                Texture("C:\\Users\\User\\Desktop\\game-shader-master\\src\\main\\resources\\textures\\skybox.png");
+                Texture("C:\\Users\\pborodin\\Desktop\\job\\game\\game-shader\\src\\main\\resources\\textures\\skybox.png");
         groundTexture = new
-                Texture("C:\\Users\\User\\Desktop\\game-shader-master\\src\\main\\resources\\textures\\landscape.png");
+                Texture("C:\\Users\\pborodin\\Desktop\\job\\game\\game-shader\\src\\main\\resources\\textures\\landscape.png");
 
         camera = new
                 Camera(new Vector3f(0.0f, 1.0f, 3.0f), new
@@ -172,11 +173,7 @@ public class Game3d {
         // Установка параметров амбиентного освещения
         glUniform3f(glGetUniformLocation(worldShaderProgram.getProgramId(), "ambientColor"), 0.3f, 0.3f, 0.3f);
 
-        // Установка параметров тумана
-//        Vector3f cameraPosition = camera.getPosition();
-//        glUniform3f(glGetUniformLocation(worldShaderProgram.getProgramId(), "fogColor"), 0.5f, 0.6f, 0.7f); // Голубовато-серый туман
-//        glUniform1f(glGetUniformLocation(worldShaderProgram.getProgramId(), "fogDensity"), 0.2f); // Плотность тумана
-//        glUniform3f(glGetUniformLocation(worldShaderProgram.getProgramId(), "cameraPos"), cameraPosition.x, cameraPosition.y, cameraPosition.z);
+//        startFog(camera, worldShaderProgram);
 
         // Параметры атмосферы
         worldShaderProgram.setUniform("skyColor", new Vector3f(0.6f, 0.7f, 0.9f));
@@ -294,7 +291,7 @@ public class Game3d {
         if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS) {
             if (!cameraAttachedToModel) {
                 cameraAttachedToModel = true;
-                camera.setThirdPersonView(carPosition, 5.0f, 2.0f); // Вызываем метод перемещения камеры
+                camera.setThirdPersonView(carPosition, 1.0f, 10.0f); // Вызываем метод перемещения камеры
             } else {
                 cameraAttachedToModel = false;
             }

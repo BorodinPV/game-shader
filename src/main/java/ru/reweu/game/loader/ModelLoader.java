@@ -174,8 +174,7 @@ public class ModelLoader {
             if (!texturePath.isEmpty()) {
                 System.out.println("Found texture path: " + texturePath);
                 String fullPath =
-                    "C:/Users/User/Desktop/game-shader-master/src/main/resources/all/chevy/" + texturePath;
-
+                    "C:\\Users\\pborodin\\Desktop\\job\\game\\game-shader\\src\\main\\resources\\models\\suburban\\" + texturePath;
                 try {
                     Texture texture = new Texture(fullPath);
                     return texture;
