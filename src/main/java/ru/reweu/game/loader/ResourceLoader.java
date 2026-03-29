@@ -2,6 +2,8 @@ package ru.reweu.game.loader;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.ByteBuffer;
 
 import static org.lwjgl.system.MemoryUtil.memAlloc;
@@ -22,11 +24,33 @@ public class ResourceLoader {
         }
     }
 
+    /**
+     * Путь к файлу ресурса на диске (только если ресурс реально есть в classpath и доступен как {@code file:} URL).
+     */
     public static java.io.File loadResourceAsFile(String resourcePath) {
+        URL url = ResourceLoader.class.getResource(resourcePath);
+        if (url == null) {
+            throw new RuntimeException("Resource not found: " + resourcePath);
+        }
         try {
-            return new java.io.File(ResourceLoader.class.getResource(resourcePath).toURI());
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to load resource as file: " + resourcePath, e);
+            return new java.io.File(url.toURI());
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("Failed to resolve resource as file: " + resourcePath, e);
+        }
+    }
+
+    /**
+     * Как {@link #loadResourceAsFile(String)}, но без исключения, если пути нет в classpath (например опциональный HDR).
+     */
+    public static java.io.File tryLoadResourceAsFile(String resourcePath) {
+        URL url = ResourceLoader.class.getResource(resourcePath);
+        if (url == null) {
+            return null;
+        }
+        try {
+            return new java.io.File(url.toURI());
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("Failed to resolve resource as file: " + resourcePath, e);
         }
     }
 }

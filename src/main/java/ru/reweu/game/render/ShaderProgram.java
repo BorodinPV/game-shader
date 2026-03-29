@@ -29,7 +29,9 @@ import static org.lwjgl.system.MemoryStack.stackPush;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import ru.reweu.game.loader.ResourceLoader;
@@ -50,7 +52,9 @@ public class ShaderProgram {
         glAttachShader(programId, fragmentShaderId);
         glLinkProgram(programId);
         if (glGetProgrami(programId, GL_LINK_STATUS) == GL_FALSE) {
-            throw new RuntimeException("Failed to link shader program: " + glGetProgramInfoLog(programId));
+            String log = glGetProgramInfoLog(programId);
+            RenderErrorLog.warn("Shader link failed: " + log);
+            throw new RuntimeException("Failed to link shader program: " + log);
         }
 
         glDetachShader(programId, vertexShaderId);
@@ -64,8 +68,10 @@ public class ShaderProgram {
     private int loadShader(String resourcePath, int type) {
         String shaderSource;
         try {
-            shaderSource = new String(Files.readAllBytes(Paths.get(ResourceLoader.loadResourceAsFile(resourcePath).getPath())));
+            String raw = new String(Files.readAllBytes(Paths.get(ResourceLoader.loadResourceAsFile(resourcePath).getPath())));
+            shaderSource = preprocessIncludes(raw, resourcePath, new HashSet<>(), new HashSet<>());
         } catch (Exception e) {
+            RenderErrorLog.warn("Shader file load failed: " + resourcePath, e);
             throw new RuntimeException("Failed to load shader from file: " + resourcePath, e);
         }
 
@@ -73,10 +79,72 @@ public class ShaderProgram {
         glShaderSource(shaderId, shaderSource);
         glCompileShader(shaderId);
         if (glGetShaderi(shaderId, GL_COMPILE_STATUS) == GL_FALSE) {
-            throw new RuntimeException("Failed to compile shader: " + glGetShaderInfoLog(shaderId));
+            String log = glGetShaderInfoLog(shaderId);
+            RenderErrorLog.warn("Shader compile failed (" + resourcePath + "): " + log);
+            throw new RuntimeException("Failed to compile shader: " + log);
         }
 
         return shaderId;
+    }
+
+    /**
+     * Поддержка {@code #include "/shaders/include/foo.glsl"} для общих кусков (тонмап, и т.д.).
+     */
+    /**
+     * Загрузка и {@link #preprocessIncludes} для произвольного этапа (в т.ч. compute).
+     */
+    public static String loadPreprocessedShaderSource(String resourcePath) throws java.io.IOException {
+        String raw = new String(Files.readAllBytes(Paths.get(ResourceLoader.loadResourceAsFile(resourcePath).getPath())));
+        return preprocessIncludes(raw, resourcePath, new HashSet<>(), new HashSet<>());
+    }
+
+    /**
+     * @param active          стек для обнаружения циклических #include
+     * @param globalIncluded  уже подставленные пути (дедупликация при вложенных include)
+     */
+    private static String preprocessIncludes(
+        String source,
+        String currentPath,
+        Set<String> active,
+        Set<String> globalIncluded
+    ) {
+        if (!active.add(currentPath)) {
+            RenderErrorLog.warn("Circular #include: " + currentPath);
+            throw new RuntimeException("Circular #include: " + currentPath);
+        }
+        try {
+            String[] lines = source.split("\r?\n", -1);
+            StringBuilder out = new StringBuilder(source.length() + 256);
+            for (String line : lines) {
+                String t = line.trim();
+                if (t.startsWith("#include ") && t.contains("\"")) {
+                    int q1 = t.indexOf('"');
+                    int q2 = t.indexOf('"', q1 + 1);
+                    if (q2 <= q1) {
+                        RenderErrorLog.warn("Malformed #include in " + currentPath + ": " + line);
+                        throw new RuntimeException("Malformed #include in " + currentPath + ": " + line);
+                    }
+                    String incPath = t.substring(q1 + 1, q2);
+                    if (globalIncluded.contains(incPath)) {
+                        continue;
+                    }
+                    try {
+                        String inner = new String(Files.readAllBytes(Paths.get(ResourceLoader.loadResourceAsFile(incPath).getPath())));
+                        String expanded = preprocessIncludes(inner, incPath, active, globalIncluded);
+                        globalIncluded.add(incPath);
+                        out.append(expanded);
+                    } catch (Exception e) {
+                        RenderErrorLog.warn("Failed to resolve #include \"" + incPath + "\" from " + currentPath, e);
+                        throw new RuntimeException("Failed to resolve #include \"" + incPath + "\" from " + currentPath, e);
+                    }
+                } else {
+                    out.append(line).append('\n');
+                }
+            }
+            return out.toString();
+        } finally {
+            active.remove(currentPath);
+        }
     }
 
     public void use() {
@@ -99,8 +167,12 @@ public class ShaderProgram {
         if (!uniforms.containsKey(name)) {
             uniforms.put(name, glGetUniformLocation(programId, name));
         }
+        Integer loc = uniforms.get(name);
+        if (loc == null || loc == -1) {
+            return;
+        }
         try (var stack = stackPush()) {
-            glUniformMatrix4fv(uniforms.get(name), false, value.get(stack.mallocFloat(16)));
+            glUniformMatrix4fv(loc, false, value.get(stack.mallocFloat(16)));
         }
     }
 
@@ -108,7 +180,11 @@ public class ShaderProgram {
         if (!uniforms.containsKey(name)) {
             uniforms.put(name, glGetUniformLocation(programId, name));
         }
-        glUniform3f(uniforms.get(name), value.x, value.y, value.z);
+        Integer loc = uniforms.get(name);
+        if (loc == null || loc == -1) {
+            return;
+        }
+        glUniform3f(loc, value.x, value.y, value.z);
     }
 
     // Метод для установки булевого значения
@@ -116,7 +192,11 @@ public class ShaderProgram {
         if (!uniforms.containsKey(name)) {
             uniforms.put(name, glGetUniformLocation(programId, name));
         }
-        glUniform1i(uniforms.get(name), value ? 1 : 0); // OpenGL не поддерживает прямую передачу bool, используем int (1 или 0)
+        Integer loc = uniforms.get(name);
+        if (loc == null || loc == -1) {
+            return;
+        }
+        glUniform1i(loc, value ? 1 : 0);
     }
 
     // Метод для установки целого значения (например, для текстурных сэмплеров)
@@ -124,7 +204,11 @@ public class ShaderProgram {
         if (!uniforms.containsKey(name)) {
             uniforms.put(name, glGetUniformLocation(programId, name));
         }
-        glUniform1i(uniforms.get(name), value);
+        Integer loc = uniforms.get(name);
+        if (loc == null || loc == -1) {
+            return;
+        }
+        glUniform1i(loc, value);
     }
 
     public void cleanup() {

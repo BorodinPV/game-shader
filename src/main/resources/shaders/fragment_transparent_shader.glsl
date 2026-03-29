@@ -1,10 +1,13 @@
 #version 330 core
 
+#include "/shaders/include/tonemap_exposure.glsl"
+
 out vec4 FragColor;
 
 in vec2 TexCoord;
 
 uniform sampler2D diffuseTexture;
+uniform float exposure;
 
 void main()
 {
@@ -17,5 +20,5 @@ void main()
 
     if (alpha < 0.1) discard; // Отбрасываем пиксели, которые практически прозрачны
 
-    FragColor = vec4(texColor.rgb, alpha); // Используем альфа для прозрачности
+    FragColor = vec4(tonemapDisplay(texColor.rgb, exposure), alpha);
 }

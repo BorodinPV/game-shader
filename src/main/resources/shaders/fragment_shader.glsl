@@ -1,62 +1,117 @@
 #version 330 core
 
+#include "/shaders/include/tonemap_exposure.glsl"
+#include "/shaders/include/shadow_pcf3x3.glsl"
+
 out vec4 FragColor;
 
 in vec2 TexCoord;
-in vec3 FragPos;
 in vec3 Normal;
+in vec3 FragPos;
+in vec4 VertexColor;
+in vec4 FragPosLightSpace;
 
 uniform sampler2D texture1;
+uniform int useSpecularTexture;
+uniform sampler2D textureMetallicRoughness;
 
-uniform vec3 lightColor;
 uniform vec3 sunDirection;
 uniform vec3 sunColor;
 uniform float sunIntensity;
 uniform vec3 ambientColor;
+uniform vec3 cameraPosition;
+uniform float textureScale;
 
-// Параметры тумана
-uniform vec3 fogColor;
-uniform float fogDensity;
-uniform vec3 cameraPos;
+uniform int useDiffuseTexture;
+uniform vec3 diffuseColor;
+uniform float materialAlpha;
+uniform int opaqueGeometryPass;
 
-// Параметры атмосферы
-uniform vec3 skyColor;
-uniform float atmosphereStart;   // Начальная высота атмосферы
-uniform float atmosphereEnd;     // Высота, где атмосфера становится полной
+uniform sampler2D shadowMap;
+uniform int shadowsEnabled;
+
+uniform float exposure;
+uniform vec3 fillDirection;
+uniform vec3 fillColor;
+uniform float fillStrength;
+uniform vec3 skyAmbientColor;
+uniform vec3 groundAmbientColor;
+uniform float hemiMix;
+uniform float ambientHemiScale;
+uniform float ambientHemiHemi;
 
 void main()
 {
-    // Нормализуем нормали
     vec3 norm = normalize(Normal);
+    vec3 V = normalize(cameraPosition - FragPos);
+    float ts = max(textureScale, 1e-4);
 
-    // Расчет солнечного освещения
-    float sunDiff = max(dot(norm, -sunDirection), 0.0);
-    vec3 sunDiffuse = sunDiff * sunColor * sunIntensity;
+    float roughness = 0.94;
+    float metallic = 0.0;
+    if (useSpecularTexture != 0) {
+        vec3 mr = texture(textureMetallicRoughness, TexCoord * ts).rgb;
+        roughness = clamp(mr.g, 0.04, 1.0);
+        metallic = clamp(mr.b, 0.0, 1.0);
+    }
 
-    // Амбиентное освещение
-    vec3 ambient = ambientColor;
+    /* sunDirection — от точки к солнцу (как в SceneLighting); согласовано с ray_trace.comp и sky_pass */
+    vec3 Lsun = normalize(sunDirection);
+    float sunDiff = max(dot(norm, Lsun), 0.0);
+    float sh = shadowPcf3x3(norm, Lsun, FragPosLightSpace, shadowMap, shadowsEnabled);
+    vec3 sunDiffuse = sunDiff * sunColor * sunIntensity * sh;
 
-    // Итоговое освещение
-    vec3 lighting = ambient + sunDiffuse;
+    vec3 fillDir = normalize(fillDirection);
+    float fillDiff = max(dot(norm, fillDir), 0.0);
+    vec3 fillLight = fillDiff * fillColor * fillStrength;
 
-    // Применение освещения к текстуре
-    vec3 textureColor = texture(texture1, TexCoord).rgb;
-    vec3 result = textureColor * lighting;
+    float hemi = norm.y * 0.5 + 0.5;
+    vec3 hemiAmb = mix(groundAmbientColor, skyAmbientColor, hemi);
+    vec3 ambientMix = mix(ambientColor, hemiAmb, hemiMix);
 
-    // Расчет расстояния от фрагмента до камеры
-    float distance = length(FragPos - cameraPos);
+    vec3 lighting = ambientMix * (ambientHemiScale + ambientHemiHemi * hemi) + sunDiffuse + fillLight;
 
-    // Уменьшение плотности тумана на высоте
-    float heightFactor = clamp((FragPos.y - atmosphereStart) / (atmosphereEnd - atmosphereStart), 0.0, 1.0);
+    vec3 albedo;
+    float alpha = 1.0;
+    if (useDiffuseTexture != 0) {
+        vec4 texSample = texture(texture1, TexCoord * ts);
+        vec3 tc = texSample.rgb;
+        alpha = texSample.a * materialAlpha;
+        vec3 tint = diffuseColor;
+        if (dot(tint, tint) < 1e-8) {
+            tint = vec3(1.0);
+        }
+        albedo = tc * tint;
+    } else {
+        vec3 dc = diffuseColor;
+        if (dot(dc, dc) < 1e-8) {
+            dc = vec3(0.75);
+        }
+        albedo = dc;
+        alpha = materialAlpha;
+    }
 
-    // Экспоненциальный туман с еще большим сглаживанием
-    float fogFactor = 1.0 - exp(-pow(distance * fogDensity, 2.0));  // Увеличение степени до 2.0 для сглаживания
+    albedo *= VertexColor.rgb;
+    alpha *= VertexColor.a;
 
-    // Расчет цвета с учетом атмосферы
-    vec3 atmosphereColor = mix(result, skyColor, heightFactor);
+    vec3 H = normalize(Lsun + V);
+    float gloss = 1.0 - roughness;
+    float shininess = mix(4.0, 96.0, gloss * gloss);
+    float specPow = pow(max(dot(norm, H), 0.0), shininess);
+    float specStr = mix(0.02, 0.28, gloss) * mix(0.2, 1.0, metallic + 0.35);
+    vec3 specSun = sunColor * sunIntensity * specPow * specStr * sh;
 
-    // Смешивание тумана и сцены для плавного перехода
-    vec3 finalColor = mix(atmosphereColor, fogColor, fogFactor);
+    vec3 R = reflect(-V, norm);
+    float envElev = R.y * 0.5 + 0.5;
+    vec3 envCol = mix(vec3(0.22, 0.24, 0.28), vec3(0.72, 0.78, 0.92), envElev);
+    float fresnel = pow(1.0 - max(dot(norm, V), 0.0), 3.2);
+    float envMix = fresnel * mix(0.04, 0.42, metallic + 0.25) * (0.25 + 0.35 * gloss);
+    vec3 envSpec = envCol * envMix;
 
-    FragColor = vec4(finalColor, 1.0);
+    vec3 diffuseContrib = albedo * lighting;
+    vec3 linearColor = diffuseContrib + specSun + envSpec;
+    vec3 mapped = tonemapDisplay(linearColor, exposure);
+    if (opaqueGeometryPass != 0) {
+        alpha = 1.0;
+    }
+    FragColor = vec4(mapped, alpha);
 }

@@ -6,60 +6,85 @@ import org.lwjgl.Version;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
-import ru.reweu.game.car.Car;
+import ru.reweu.game.RuntimeGraphicsSettings;
+import ru.reweu.game.gui.FPSCounter;
+import ru.reweu.game.gui.PauseMenu;
+import java.nio.file.Path;
+import ru.reweu.game.gltf.GltfPbrRenderer;
+import ru.reweu.game.gltf.GltfScene;
 import ru.reweu.game.loader.ModelLoader;
-import ru.reweu.game.loader.simple.Mesh;
-import ru.reweu.game.loader.simple.Texture;
+import ru.reweu.game.loader.ResourceLoader;
+import ru.reweu.game.render.BrdfLutTexture;
+import ru.reweu.game.render.DirectionalShadowMap;
+import ru.reweu.game.render.ibl.EnvironmentIbl;
+import ru.reweu.game.render.ibl.IblEquirectLoader;
+import ru.reweu.game.render.RenderErrorLog;
+import ru.reweu.game.render.SceneRenderer;
 import ru.reweu.game.render.ShaderProgram;
+import ru.reweu.game.render.SkyRenderer;
+import ru.reweu.game.render.WorldRenderer;
+import ru.reweu.game.render.rt.RayTraceRenderer;
+import ru.reweu.game.world.TerrainSurface;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
 import static org.lwjgl.opengl.GL11.glClear;
-import static org.lwjgl.opengl.GL11.glClearColor;
 import static org.lwjgl.opengl.GL11.glEnable;
+import static org.lwjgl.opengl.GL30.GL_FRAMEBUFFER_SRGB;
 import static org.lwjgl.opengl.GL11C.GL_BLEND;
 import static org.lwjgl.opengl.GL11C.GL_ONE_MINUS_SRC_ALPHA;
 import static org.lwjgl.opengl.GL11C.GL_SRC_ALPHA;
 import static org.lwjgl.opengl.GL11C.glBlendFunc;
-import static org.lwjgl.opengl.GL11C.glGetError;
 import static org.lwjgl.opengl.GL13C.GL_MULTISAMPLE;
-import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.KHRRobustness.GL_NO_ERROR;
+import static org.lwjgl.opengl.GL32.GL_TEXTURE_CUBE_MAP_SEAMLESS;
 import static org.lwjgl.system.MemoryUtil.NULL;
-import static ru.reweu.game.loader.simple.StaticMesh.getCubeMesh;
-import static ru.reweu.game.loader.simple.StaticMesh.getPlaneMesh;
-import static ru.reweu.game.car.Car.carSpeed;
-import static ru.reweu.game.main.Variables.*;
-import static ru.reweu.game.render.ShaderRender.renderObjects;
 
 public class Game3d {
 
     private long window;
     private ShaderProgram worldShaderProgram;
-    private ShaderProgram shaderProgram;
-    private Mesh cubeMesh, planeMesh;
-    private static Camera camera;
-    private Texture skyboxTexture, groundTexture;
-    private float lastX = 400, lastY = 300;
+    private Camera camera;
+    private float lastX = 400;
+    private float lastY = 300;
     private boolean firstMouse = true;
-    private Vector3f modelPosition = new Vector3f(0.0f, 0.7f, 0.0f); // начальная позиция модели
-    private Vector3f carPosition = new Vector3f(0.0f, 0.0f, 0.0f); // Позиция машины
-    private Vector3f carDirection = new Vector3f(1.0f, 0.0f, 0f); // Направление машины (вдоль оси Z)
-    private float turnSpeed = 30.0f; // Скорость поворота машины
-    private boolean cameraAttachedToModel = false; // Флаг привязки камеры
-    private float carRotationAngle = 0f; // Угол поворота машины вокруг оси Y
-    private final float maxSpeed = 10.0f; // Максимальная скорость
-    private final float acceleration = 2.0f; // Ускорение машины
-    private final float deceleration = 3.0f; // Замедление машины
-    private Car car;
 
-    private List<ru.reweu.game.loader.Mesh[]> meshes = new ArrayList<>();
-    private List<ru.reweu.game.loader.Mesh[]> landscape = new ArrayList<>();
+    private final List<ru.reweu.game.loader.Mesh[]> landscape = new ArrayList<>();
+    private final List<ru.reweu.game.loader.Mesh[]> propMeshes = new ArrayList<>();
+    /** Позиция Mustang / Assimp-пропа; индекс 0 в {@link #gltfWorldPositions}. */
+    private final Vector3f propPosition = new Vector3f();
+    /** Позиция AE86; индекс 1. Меняйте X/Z при движении — Y обновляет рельеф. */
+    private final Vector3f toyotaWorldPosition = new Vector3f();
+    /** Land Explorer; индекс 2. */
+    private final Vector3f landExplorerWorldPosition = new Vector3f();
+    /** Beetle Fusca; индекс 3. */
+    private final Vector3f beetleFuscaWorldPosition = new Vector3f();
+    private final List<GltfScene> gltfScenes = new ArrayList<>();
+    private final List<Vector3f> gltfWorldPositions = new ArrayList<>();
+    private final List<Float> gltfScales = new ArrayList<>();
+    private TerrainSurface terrainSurface;
+    private WorldRenderer worldRenderer;
+    private SceneRenderer sceneRenderer;
+    private ShaderProgram gltfShaderProgram;
+    private DirectionalShadowMap shadowMap;
+    private BrdfLutTexture brdfLutTexture;
+    private ShaderProgram meshDepthShader;
+    private ShaderProgram gltfDepthShader;
+    private EnvironmentIbl environmentIbl;
+    private ShaderProgram skyShaderProgram;
+    private RayTraceRenderer rayTraceRenderer;
+
+    private float lastFrameTime;
+    private float deltaTime;
+    private FPSCounter fpsCounter;
+    private PauseMenu pauseMenu;
+    private boolean menuOpen;
+    private boolean escKeyDown;
 
     public void run() {
         System.out.println("Starting LWJGL " + Version.getVersion() + "!");
@@ -72,6 +97,10 @@ public class Game3d {
 
     private void init() {
         GLFWErrorCallback.createPrint(System.err).set();
+        if (System.getenv("GLFW_FORCE_WAYLAND") == null
+            && System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("linux")) {
+            glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+        }
         if (!glfwInit()) {
             throw new IllegalStateException("Unable to initialize GLFW");
         }
@@ -80,9 +109,14 @@ public class Game3d {
         GLFWVidMode vidmode = glfwGetVideoMode(primaryMonitor);
 
         glfwDefaultWindowHints();
+        if (GameConfig.RAY_TRACE_ENABLED) {
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        }
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        glfwWindowHint(GLFW_SAMPLES, 4); // Включаем 4x антиалиасинг
+        glfwWindowHint(GLFW_SAMPLES, 4);
 
         window = glfwCreateWindow(vidmode.width(), vidmode.height(), "Simple Cube", NULL, NULL);
         if (window == NULL) {
@@ -90,40 +124,163 @@ public class Game3d {
         }
 
         glfwMakeContextCurrent(window);
-        glfwSwapInterval(1);
+        glfwSwapInterval(GameConfig.VSYNC ? 1 : 0);
         glfwShowWindow(window);
 
         GL.createCapabilities();
+        glEnable(GL_FRAMEBUFFER_SRGB);
+        if (GL.getCapabilities().OpenGL32) {
+            glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+        }
+        SkyRenderer.init();
+
+        fpsCounter = new FPSCounter(window);
+        fpsCounter.init();
+        pauseMenu = new PauseMenu(window);
+        pauseMenu.init();
 
         worldShaderProgram = new ShaderProgram(
-                "/shaders/vertex_shader.glsl",
-                "/shaders/fragment_shader.glsl"
+            "/shaders/vertex_shader.glsl",
+            "/shaders/fragment_shader.glsl"
         );
-        shaderProgram = new ShaderProgram("/shaders/vertex.glsl", "/shaders/fragment.glsl");
-        car = new Car();
-        cubeMesh = getCubeMesh();
-//        planeMesh = getPlaneMesh();
-        meshes.add(ModelLoader.loadModel("/models/suburban/suburban.obj", 0.2f));
-        meshes.add(ModelLoader.loadModel("/models/suburban/wheel.obj", 0.2f));
-        landscape.add(ModelLoader.loadModel("/models/landscape/landscape.obj", 1f));
+        shadowMap = new DirectionalShadowMap(GameConfig.effectiveShadowMapSize());
+        brdfLutTexture = new BrdfLutTexture();
+        int equirectTex = IblEquirectLoader.createEquirectTexture(GameConfig.IBL_HDR_EQUIRECT);
+        environmentIbl = new EnvironmentIbl(equirectTex);
+        meshDepthShader = new ShaderProgram("/shaders/mesh_depth.vert", "/shaders/mesh_depth.frag");
+        gltfDepthShader = new ShaderProgram("/shaders/pbr_gltf_shadow.vert", "/shaders/mesh_depth.frag");
+        GltfPbrRenderer.initJointBlock(gltfDepthShader);
+        if (GameConfig.DRAW_LANDSCAPE) {
+            landscape.add(ModelLoader.loadModel("/models/landscape/landscape.obj", 1f));
+        }
+        if (GameConfig.isDumpAssimpReportOnStart()) {
+            ModelLoader.dumpAssimpSceneReport(GameConfig.FORD_MUSTANG_1965_GLB);
+        }
+        if (GameConfig.USE_GLTF_NATIVE_LOADER) {
+            gltfShaderProgram = new ShaderProgram("/shaders/pbr_gltf.vert", "/shaders/pbr_gltf.frag");
+            GltfPbrRenderer.initJointBlock(gltfShaderProgram);
+            try {
+                Path mustangPath = ResourceLoader.loadResourceAsFile(GameConfig.FORD_MUSTANG_1965_GLB).toPath();
+                gltfScenes.add(GltfScene.load(mustangPath));
+                Path toyotaPath = ResourceLoader.loadResourceAsFile(GameConfig.TOYOTA_AE86_GLB).toPath();
+                gltfScenes.add(GltfScene.load(toyotaPath));
+                Path explorerPath = ResourceLoader.loadResourceAsFile(GameConfig.A_LAND_EXPLORER_FREE_GLB).toPath();
+                gltfScenes.add(GltfScene.load(explorerPath));
+                Path beetlePath = ResourceLoader.loadResourceAsFile(GameConfig.BEETLE_FUSCA_VERSION_1_GLB).toPath();
+                gltfScenes.add(GltfScene.load(beetlePath));
+            } catch (Exception e) {
+                RenderErrorLog.warn("Failed to load glTF cars (Mustang, AE86, Explorer, Beetle)", e);
+                throw new RuntimeException("Failed to load glTF cars", e);
+            }
+        } else {
+            propMeshes.add(
+                ModelLoader.loadModel(GameConfig.FORD_MUSTANG_1965_GLB, GameConfig.FORD_MUSTANG_MODEL_SCALE));
+            if (GameConfig.isDumpAssimpReportOnStart()) {
+                ModelLoader.dumpLoadedMeshesSummary(propMeshes.get(propMeshes.size() - 1));
+            }
+        }
+        if (GameConfig.DRAW_LANDSCAPE && !landscape.isEmpty()) {
+            terrainSurface = TerrainSurface.fromMeshes(
+                landscape.get(0), new Vector3f(0f, GameConfig.LANDSCAPE_OFFSET_Y, 0f));
+        } else {
+            terrainSurface = TerrainSurface.flatPlane(0f);
+        }
+        float px = GameConfig.FORD_MUSTANG_WORLD_X;
+        float pz = GameConfig.FORD_MUSTANG_WORLD_Z;
+        float h = terrainSurface.heightAt(px, pz);
+        propPosition.set(
+            px,
+            Float.isFinite(h) ? h + GameConfig.FORD_MUSTANG_ABOVE_TERRAIN : 1f,
+            pz
+        );
 
-        skyboxTexture = new
-                Texture("/textures/skybox.png");
-        groundTexture = new
-                Texture("/textures/landscape.png");
+        gltfWorldPositions.clear();
+        gltfScales.clear();
+        if (!gltfScenes.isEmpty()) {
+            float tx = GameConfig.TOYOTA_AE86_WORLD_X;
+            float tz = GameConfig.TOYOTA_AE86_WORLD_Z;
+            float h2 = terrainSurface.heightAt(tx, tz);
+            toyotaWorldPosition.set(
+                tx,
+                Float.isFinite(h2) ? h2 + GameConfig.TOYOTA_AE86_ABOVE_TERRAIN : 1f,
+                tz
+            );
+            float lx = GameConfig.LAND_EXPLORER_WORLD_X;
+            float lz = GameConfig.LAND_EXPLORER_WORLD_Z;
+            float hl = terrainSurface.heightAt(lx, lz);
+            landExplorerWorldPosition.set(
+                lx,
+                Float.isFinite(hl) ? hl + GameConfig.LAND_EXPLORER_ABOVE_TERRAIN : 1f,
+                lz
+            );
+            float bx = GameConfig.BEETLE_FUSCA_WORLD_X;
+            float bz = GameConfig.BEETLE_FUSCA_WORLD_Z;
+            float hb = terrainSurface.heightAt(bx, bz);
+            beetleFuscaWorldPosition.set(
+                bx,
+                Float.isFinite(hb) ? hb + GameConfig.BEETLE_FUSCA_ABOVE_TERRAIN : 1f,
+                bz
+            );
+            gltfWorldPositions.add(propPosition);
+            float baseScale = GameConfig.FORD_MUSTANG_MODEL_SCALE;
+            gltfScales.add(baseScale);
+            gltfWorldPositions.add(toyotaWorldPosition);
+            gltfWorldPositions.add(landExplorerWorldPosition);
+            gltfWorldPositions.add(beetleFuscaWorldPosition);
+            float ex0 = GltfScene.boundingMaxEdgeLength(gltfScenes.get(0));
+            for (int i = 1; i < gltfScenes.size(); i++) {
+                float ex = GltfScene.boundingMaxEdgeLength(gltfScenes.get(i));
+                gltfScales.add(ex > 1e-8f ? baseScale * (ex0 / ex) : baseScale);
+            }
+        }
 
-        camera = new
-                Camera(new Vector3f(0.0f, 1.0f, 3.0f), new
-                Vector3f(0.0f, 1.0f, 0.0f), 90.0f, 0.0f);
+        skyShaderProgram = new ShaderProgram("/shaders/sky_pass.vert", "/shaders/sky_pass.frag");
+        worldRenderer = new WorldRenderer(worldShaderProgram, shadowMap, brdfLutTexture, environmentIbl);
+        RayTraceRenderer rt = null;
+        if (GameConfig.RAY_TRACE_ENABLED) {
+            if (!GL.getCapabilities().OpenGL43) {
+                RenderErrorLog.warn("Ray tracing: OpenGL 4.3+ required (compute shaders).");
+            } else {
+                try {
+                    rt = new RayTraceRenderer(
+                        landscape,
+                        gltfScenes,
+                        gltfWorldPositions,
+                        gltfScales,
+                        propMeshes,
+                        propPosition
+                    );
+                    rayTraceRenderer = rt;
+                } catch (Exception e) {
+                    RenderErrorLog.warn("Ray trace init failed", e);
+                }
+            }
+        }
+        sceneRenderer = new SceneRenderer(
+            landscape,
+            propMeshes,
+            propPosition,
+            gltfShaderProgram,
+            gltfScenes,
+            gltfWorldPositions,
+            gltfScales,
+            worldRenderer,
+            meshDepthShader,
+            gltfDepthShader,
+            skyShaderProgram,
+            rt
+        );
 
+        camera = new Camera(new Vector3f(0.0f, 1.0f, 3.0f), new Vector3f(0.0f, 1.0f, 0.0f), 90.0f, 0.0f);
+        snapCameraToTerrain();
+        lastFrameTime = (float) glfwGetTime();
 
         glfwSetCursorPosCallback(window, this::mouseCallback);
+        glfwSetMouseButtonCallback(window, this::mouseButtonCallback);
 
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        int errorCode = glGetError();
-        if (errorCode != GL_NO_ERROR) {
-            System.out.println("OpenGL Error: " + errorCode);
-        }
+        RenderErrorLog.checkGl("after init GL state");
+        GameConfig.logRenderConfig();
 
         glEnable(GL_MULTISAMPLE);
         glEnable(GL_DEPTH_TEST);
@@ -134,200 +291,212 @@ public class Game3d {
     private void loop() {
 
         while (!glfwWindowShouldClose(window)) {
+            fpsCounter.update();
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             float currentFrame = (float) glfwGetTime();
-            setDeltaTime(currentFrame - getLastFrame());
-            setLastFrame(currentFrame);
+            deltaTime = currentFrame - lastFrameTime;
+            lastFrameTime = currentFrame;
 
             processInput();
 
-            // Обновите позицию камеры, если она прикреплена к модели
-            if (cameraAttachedToModel) {
-                camera.updateCameraPosition(carPosition, carDirection, 6.0f, 2f); // Настройте расстояние и высоту по желанию
-            }
+            syncCarHeightFromTerrain();
+            snapCameraToTerrain();
 
             Matrix4f view = camera.getViewMatrix();
-            Matrix4f projection = new Matrix4f().perspective((float) Math.toRadians(45.0f), 800f / 600f, 0.1f, 1000.0f);
+            int[] fbW = new int[1];
+            int[] fbH = new int[1];
+            glfwGetFramebufferSize(window, fbW, fbH);
+            float aspect = (float) fbW[0] / (float) Math.max(1, fbH[0]);
+            Matrix4f projection = new Matrix4f().perspective(
+                (float) Math.toRadians(GameConfig.FOV_DEGREES),
+                aspect,
+                GameConfig.NEAR_PLANE,
+                GameConfig.FAR_PLANE
+            );
 
-            // Отрисовка непрозрачных объектов
-            renderOpaqueObjects(view, projection);
+            sceneRenderer.renderTransparent(
+                view,
+                projection,
+                camera.getPosition(),
+                deltaTime,
+                fbW[0],
+                fbH[0]
+            );
 
-            // Отрисовка прозрачных объектов
-            renderTransparentObjects(view, projection);
-
-            car.updateWheelRotation(getDeltaTime(), carRotationAngle, carPosition, shaderProgram);
-
+            if (RuntimeGraphicsSettings.get().isShowFpsOverlay()) {
+                fpsCounter.render();
+            }
+            if (menuOpen) {
+                pauseMenu.render();
+            }
             glfwSwapBuffers(window);
+            RenderErrorLog.checkGl("frame");
             glfwPollEvents();
         }
 
         cleanup();
     }
 
-    private void renderOpaqueObjects(Matrix4f view, Matrix4f projection) {
-        worldShaderProgram.use();
-
-        glClearColor(0.6f, 0.7f, 0.9f, 1.0f); // Голубой цвет, напоминающий небо
-        // Установка параметров солнечного света
-        glUniform3f(glGetUniformLocation(worldShaderProgram.getProgramId(), "sunDirection"), -1.0f, -10.0f, -1.0f);
-        glUniform3f(glGetUniformLocation(worldShaderProgram.getProgramId(), "sunColor"), 1.0f, 0.9f, 0.7f);
-        glUniform1f(glGetUniformLocation(worldShaderProgram.getProgramId(), "sunIntensity"), 0.6f);
-
-        // Установка параметров амбиентного освещения
-        glUniform3f(glGetUniformLocation(worldShaderProgram.getProgramId(), "ambientColor"), 0.3f, 0.3f, 0.3f);
-
-//        startFog(camera, worldShaderProgram);
-
-        // Параметры атмосферы
-        worldShaderProgram.setUniform("skyColor", new Vector3f(0.6f, 0.7f, 0.9f));
-        worldShaderProgram.setUniform("atmosphereStart", 50.0f);
-        worldShaderProgram.setUniform("atmosphereEnd", 200.0f);
-
-        // Параметры облаков
-        worldShaderProgram.setUniform("cloudDensity", 1f); // Попробуйте разные значения, чтобы найти оптимальные
-        worldShaderProgram.setUniform("cloudColor", new Vector3f(1.0f, 1.0f, 1.0f)); // Белые облака
-
-        // Установка матриц вида и проекции
-        worldShaderProgram.setUniform("view", view);
-        worldShaderProgram.setUniform("projection", projection);
-
-        // Рендеринг земли
-        worldShaderProgram.setUniform("model", new Matrix4f());
-//        groundTexture.bind();
-//        planeMesh.render();
-    }
-
-    private void renderTransparentObjects(Matrix4f view, Matrix4f projection) {
-        for (ru.reweu.game.loader.Mesh[] mesh : meshes) {
-            for (ru.reweu.game.loader.Mesh meshRender : mesh) {
-                Matrix4f model = new Matrix4f().translate(modelPosition)
-                        .translate(carPosition)
-                        .rotateY((float) Math.toRadians(carRotationAngle))
-                        .scale(meshRender.getScale());
-                renderObjects(shaderProgram, mesh, model, camera, view, projection);
-            }
-        }
-        for (ru.reweu.game.loader.Mesh[] mesh : landscape) {
-            for (ru.reweu.game.loader.Mesh meshRender : mesh) {
-                Matrix4f model = new Matrix4f().translate((new Vector3f(0.0f, -10.0f, 0.0f)))
-//                    .translate(new Vector3f(0.0f, 0.0f, 0.0f))
-//                    .rotateY((float) Math.toRadians(carRotationAngle))
-                    .scale(meshRender.getScale());
-                renderObjects(worldShaderProgram, mesh, model, camera, view, projection);
-            }
-        }
-    }
-
     private void processInput() {
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-            camera.processKeyboard(GLFW_KEY_W, getDeltaTime(), true);
-        }
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-            camera.processKeyboard(GLFW_KEY_S, getDeltaTime(), true);
-        }
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-            camera.processKeyboard(GLFW_KEY_A, getDeltaTime(), true);
-        }
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-            camera.processKeyboard(GLFW_KEY_D, getDeltaTime(), true);
-        }
-        // Поворот машины
-        if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-            if (carSpeed < 0.0f) {
-                car.setWheelTurnAngle(30.0f);
-                carRotationAngle += turnSpeed * getDeltaTime();
+        if (!menuOpen) {
+            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+                camera.processKeyboard(GLFW_KEY_W, deltaTime);
             }
-            if (carSpeed > 0.0f) {
-                car.setWheelTurnAngle(30.0f);
-                carRotationAngle -= turnSpeed * getDeltaTime();
+            if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+                camera.processKeyboard(GLFW_KEY_S, deltaTime);
             }
-        } else if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-            if (carSpeed > 0.0f) {
-                car.setWheelTurnAngle(-30.0f);
-                carRotationAngle += turnSpeed * getDeltaTime();
+            if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+                camera.processKeyboard(GLFW_KEY_A, deltaTime);
             }
-            if (carSpeed < 0.0f) {
-                car.setWheelTurnAngle(-30.0f);
-                carRotationAngle -= turnSpeed * getDeltaTime();
-            }
-        } else {
-            car.setWheelTurnAngle( 0.0f); // Сброс угла поворота колес, если нет ввода
-        }
-
-        // Обновление направления движения машины
-        carDirection.x = (float) Math.sin(Math.toRadians(carRotationAngle));
-        carDirection.z = (float) Math.cos(Math.toRadians(carRotationAngle));
-        carDirection.normalize();
-
-        // Ускорение вперед и назад
-        if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-            carSpeed -= acceleration * getDeltaTime();
-            if (carSpeed > maxSpeed) {
-                carSpeed = maxSpeed;
-            }
-        } else if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-            carSpeed += acceleration * getDeltaTime();
-            if (carSpeed < -maxSpeed) {
-                carSpeed = -maxSpeed;
-            }
-        } else {
-            // Плавное замедление, если ни одна клавиша не нажата
-            if (carSpeed > 0) {
-                carSpeed -= deceleration * getDeltaTime();
-                if (carSpeed < 0) {
-                    carSpeed = 0;
-                }
-            } else if (carSpeed < 0) {
-                carSpeed += deceleration * getDeltaTime();
-                if (carSpeed > 0) {
-                    carSpeed = 0;
-                }
+            if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+                camera.processKeyboard(GLFW_KEY_D, deltaTime);
             }
         }
-
-        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-            if (carSpeed> 0) {
-                carSpeed -= deceleration * getDeltaTime();
-                if (carSpeed < 0) {
-                    carSpeed = 0;
-                }
-            } else if (carSpeed < 0) {
-                carSpeed += deceleration * getDeltaTime();
-                if (carSpeed > 0) {
-                    carSpeed = 0;
-                }
-            }
-        }
-
-        // Добавляем обработку Enter для переключения на вид третьего лица
-        if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS) {
-            if (!cameraAttachedToModel) {
-                cameraAttachedToModel = true;
-                camera.setThirdPersonView(carPosition, 1.0f, 10.0f); // Вызываем метод перемещения камеры
-            } else {
-                cameraAttachedToModel = false;
-            }
-        }
-
-        // Применение скорости для перемещения машины
-        carPosition.add(new Vector3f(carDirection).mul(carSpeed * getDeltaTime()));
 
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-            cleanup();
-            System.exit(-1);
+            if (!escKeyDown) {
+                escKeyDown = true;
+                menuOpen = !menuOpen;
+                glfwSetInputMode(window, GLFW_CURSOR, menuOpen ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+                if (menuOpen) {
+                    firstMouse = true;
+                } else {
+                    pauseMenu.resetPointerState();
+                    RuntimeGraphicsSettings.persistCurrent();
+                }
+            }
+        } else {
+            escKeyDown = false;
+        }
+    }
+
+    /**
+     * Подстраивает Y машин под рельеф по текущим X/Z. Вызывайте после изменения X/Z (физика, ввод).
+     */
+    private void syncCarHeightFromTerrain() {
+        if (gltfScenes.isEmpty()) {
+            return;
+        }
+        float px = propPosition.x;
+        float pz = propPosition.z;
+        float h = terrainSurface.heightAt(px, pz);
+        if (Float.isFinite(h)) {
+            propPosition.y = h + GameConfig.FORD_MUSTANG_ABOVE_TERRAIN;
+        }
+        float tx = toyotaWorldPosition.x;
+        float tz = toyotaWorldPosition.z;
+        float h2 = terrainSurface.heightAt(tx, tz);
+        if (Float.isFinite(h2)) {
+            toyotaWorldPosition.y = h2 + GameConfig.TOYOTA_AE86_ABOVE_TERRAIN;
+        }
+        float lx = landExplorerWorldPosition.x;
+        float lz = landExplorerWorldPosition.z;
+        float hl = terrainSurface.heightAt(lx, lz);
+        if (Float.isFinite(hl)) {
+            landExplorerWorldPosition.y = hl + GameConfig.LAND_EXPLORER_ABOVE_TERRAIN;
+        }
+        float bx = beetleFuscaWorldPosition.x;
+        float bz = beetleFuscaWorldPosition.z;
+        float hb = terrainSurface.heightAt(bx, bz);
+        if (Float.isFinite(hb)) {
+            beetleFuscaWorldPosition.y = hb + GameConfig.BEETLE_FUSCA_ABOVE_TERRAIN;
+        }
+    }
+
+    /** Мировая позиция первой glTF-машины (Mustang); меняйте X/Z для движения. */
+    public Vector3f getFirstCarWorldPosition() {
+        return propPosition;
+    }
+
+    /** Вторая glTF-машина (AE86). */
+    public Vector3f getSecondCarWorldPosition() {
+        return toyotaWorldPosition;
+    }
+
+    /** Третья glTF-машина (Land Explorer). */
+    public Vector3f getThirdCarWorldPosition() {
+        return landExplorerWorldPosition;
+    }
+
+    /** Четвёртая glTF-машина (Beetle Fusca). */
+    public Vector3f getFourthCarWorldPosition() {
+        return beetleFuscaWorldPosition;
+    }
+
+    private void snapCameraToTerrain() {
+        Vector3f p = camera.getPosition();
+        float h = terrainSurface.heightAt(p.x, p.z);
+        if (Float.isFinite(h)) {
+            p.y = h + GameConfig.CAMERA_EYE_HEIGHT;
         }
     }
 
     private void cleanup() {
-        cubeMesh.cleanup();
-        planeMesh.cleanup();
+        RuntimeGraphicsSettings.persistCurrent();
+        if (pauseMenu != null) {
+            pauseMenu.cleanup();
+        }
+        if (fpsCounter != null) {
+            fpsCounter.cleanup();
+        }
+        for (GltfScene gs : gltfScenes) {
+            if (gs != null) {
+                gs.cleanup();
+            }
+        }
+        gltfScenes.clear();
+        if (gltfShaderProgram != null) {
+            gltfShaderProgram.cleanup();
+        }
+        if (meshDepthShader != null) {
+            meshDepthShader.cleanup();
+        }
+        if (gltfDepthShader != null) {
+            gltfDepthShader.cleanup();
+        }
+        if (skyShaderProgram != null) {
+            skyShaderProgram.cleanup();
+        }
+        SkyRenderer.cleanup();
+        if (shadowMap != null) {
+            shadowMap.cleanup();
+        }
+        if (brdfLutTexture != null) {
+            brdfLutTexture.cleanup();
+        }
+        if (environmentIbl != null) {
+            environmentIbl.cleanup();
+        }
+        if (rayTraceRenderer != null) {
+            rayTraceRenderer.cleanup();
+        }
         worldShaderProgram.cleanup();
-        skyboxTexture.cleanup();
-        groundTexture.cleanup();
     }
 
+    private void mouseButtonCallback(long win, int button, int action, int mods) {
+        if (button != GLFW_MOUSE_BUTTON_LEFT || !menuOpen) {
+            return;
+        }
+        double[] x = new double[1];
+        double[] y = new double[1];
+        glfwGetCursorPos(win, x, y);
+        if (action == GLFW_PRESS) {
+            pauseMenu.handlePointerDown(x[0], y[0]);
+        } else if (action == GLFW_RELEASE) {
+            boolean slider = pauseMenu.handlePointerUp(x[0], y[0]);
+            if (slider) {
+                RuntimeGraphicsSettings.persistCurrent();
+            } else if (pauseMenu.handleClick(x[0], y[0])) {
+                RuntimeGraphicsSettings.persistCurrent();
+            }
+        }
+    }
 
     private void mouseCallback(long window, double xpos, double ypos) {
+        if (menuOpen) {
+            pauseMenu.handlePointerMove(xpos, ypos);
+            return;
+        }
         if (firstMouse) {
             lastX = (float) xpos;
             lastY = (float) ypos;
