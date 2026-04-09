@@ -3,12 +3,11 @@ package ru.reweu.game.render;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 import static org.lwjgl.opengl.GL11.glBindTexture;
 import static org.lwjgl.opengl.GL13.GL_TEXTURE_CUBE_MAP;
-import static org.lwjgl.opengl.GL11.glClearColor;
 import static org.lwjgl.opengl.GL13.GL_TEXTURE0;
 import static org.lwjgl.opengl.GL13.glActiveTexture;
-import static org.lwjgl.opengl.GL20.glGetUniformLocation;
 import static org.lwjgl.opengl.GL20.glUniform1f;
 import static org.lwjgl.opengl.GL20.glUniform1i;
+import static org.lwjgl.opengl.GL20.glUniform2f;
 import static org.lwjgl.opengl.GL20.glUniform3f;
 
 import org.joml.Matrix4f;
@@ -20,7 +19,8 @@ import ru.reweu.game.render.ibl.EnvironmentIbl;
 /**
  * Общие per-frame униформы для освещённых шейдеров (ландшафт {@code fragment_shader.glsl},
  * glTF PBR {@code pbr_gltf.frag}): направленный свет, fill, гемисфера (world), exposure,
- * тени, IBL (glTF). {@code ambientColor}, гемисфера и {@code hemiMix} — также в {@code pbr_gltf.frag}
+ * тени, IBL (glTF). Цвет очистки буфера задаётся в {@link ru.reweu.game.Game3d} до {@code glClear}, не здесь.
+ * {@code ambientColor}, гемисфера и {@code hemiMix} — также в {@code pbr_gltf.frag}
  * (диффуз «сцены» рядом с IBL). Вызывается один раз на кадр на активной программе до отрисовки мешей.
  *
  * <p>Согласовано с {@code docs/RENDERING.md} и glTF 2.0: материал (baseColor, MR, …) задаётся
@@ -33,6 +33,12 @@ import ru.reweu.game.render.ibl.EnvironmentIbl;
  * тот же вектор {@code normalize(sunDirection)} (без смены знака).
  */
 public final class SceneFrameUniforms {
+
+    private static final Matrix4f IDENTITY_MODEL = new Matrix4f();
+    private static final Matrix4f VIEW_INVERSE = new Matrix4f();
+    /** Ссылки на матрицы каскадов для {@code lightSpaceMatrix[0..3]} без аллокаций на кадр. */
+    private static final Matrix4f[] PADDED_LIGHT_MATRICES = new Matrix4f[4];
+    private static final float[] CASCADE_SPLIT_PAD = new float[3];
 
     private SceneFrameUniforms() {
     }
@@ -56,57 +62,54 @@ public final class SceneFrameUniforms {
     ) {
         shaderProgram.use();
 
-        Vector3f clear = lit.clearColor();
-        glClearColor(clear.x, clear.y, clear.z, 1.0f);
-
         int pid = shaderProgram.getProgramId();
         Vector3f sunDirection = lit.sunDirection();
-        glUniform3f(glGetUniformLocation(pid, "sunDirection"), sunDirection.x, sunDirection.y, sunDirection.z);
+        glUniform3f(ShaderProgram.uniformLocation(pid, "sunDirection"), sunDirection.x, sunDirection.y, sunDirection.z);
         Vector3f sunColor = lit.sunColor();
-        glUniform3f(glGetUniformLocation(pid, "sunColor"), sunColor.x, sunColor.y, sunColor.z);
-        glUniform1f(glGetUniformLocation(pid, "sunIntensity"), lit.sunIntensity());
+        glUniform3f(ShaderProgram.uniformLocation(pid, "sunColor"), sunColor.x, sunColor.y, sunColor.z);
+        glUniform1f(ShaderProgram.uniformLocation(pid, "sunIntensity"), lit.sunIntensity());
         Vector3f amb = lit.ambientColor();
-        glUniform3f(glGetUniformLocation(pid, "ambientColor"), amb.x, amb.y, amb.z);
+        glUniform3f(ShaderProgram.uniformLocation(pid, "ambientColor"), amb.x, amb.y, amb.z);
 
         Vector3f fillDir = lit.fillDirection();
-        glUniform3f(glGetUniformLocation(pid, "fillDirection"), fillDir.x, fillDir.y, fillDir.z);
+        glUniform3f(ShaderProgram.uniformLocation(pid, "fillDirection"), fillDir.x, fillDir.y, fillDir.z);
         Vector3f fillCol = lit.fillColor();
-        glUniform3f(glGetUniformLocation(pid, "fillColor"), fillCol.x, fillCol.y, fillCol.z);
-        int fillStr = glGetUniformLocation(pid, "fillStrength");
+        glUniform3f(ShaderProgram.uniformLocation(pid, "fillColor"), fillCol.x, fillCol.y, fillCol.z);
+        int fillStr = ShaderProgram.uniformLocation(pid, "fillStrength");
         if (fillStr != -1) {
             float fs = pid == worldShaderProgramId
                 ? lit.fillStrengthWorld()
                 : lit.fillStrengthGltf();
             glUniform1f(fillStr, fs);
         }
-        int fillSpec = glGetUniformLocation(pid, "u_fillSpecularStrength");
+        int fillSpec = ShaderProgram.uniformLocation(pid, "u_fillSpecularStrength");
         if (fillSpec != -1) {
             glUniform1f(fillSpec, lit.fillSpecularStrengthGltf());
         }
 
-        int sky = glGetUniformLocation(pid, "skyAmbientColor");
+        int sky = ShaderProgram.uniformLocation(pid, "skyAmbientColor");
         if (sky != -1) {
             Vector3f sk = lit.skyAmbientColor();
             glUniform3f(sky, sk.x, sk.y, sk.z);
         }
-        int ground = glGetUniformLocation(pid, "groundAmbientColor");
+        int ground = ShaderProgram.uniformLocation(pid, "groundAmbientColor");
         if (ground != -1) {
             Vector3f gr = lit.groundAmbientColor();
             glUniform3f(ground, gr.x, gr.y, gr.z);
         }
-        int hemiMix = glGetUniformLocation(pid, "hemiMix");
+        int hemiMix = ShaderProgram.uniformLocation(pid, "hemiMix");
         if (hemiMix != -1) {
             glUniform1f(hemiMix, lit.hemiMix());
         }
-        int ahs = glGetUniformLocation(pid, "ambientHemiScale");
+        int ahs = ShaderProgram.uniformLocation(pid, "ambientHemiScale");
         if (ahs != -1) {
             glUniform1f(ahs, lit.worldAmbientHemiScale());
         }
-        int ahh = glGetUniformLocation(pid, "ambientHemiHemi");
+        int ahh = ShaderProgram.uniformLocation(pid, "ambientHemiHemi");
         if (ahh != -1) {
             glUniform1f(ahh, lit.worldAmbientHemiHemi());
         }
-        int exp = glGetUniformLocation(pid, "exposure");
+        int exp = ShaderProgram.uniformLocation(pid, "exposure");
         if (exp != -1) {
             glUniform1f(exp, lit.exposure());
         }
@@ -114,78 +117,98 @@ public final class SceneFrameUniforms {
         shaderProgram.setUniform("textureScale", GameConfig.LANDSCAPE_TEXTURE_SCALE);
         shaderProgram.setUniform("view", view);
         shaderProgram.setUniform("projection", projection);
-        shaderProgram.setUniform("model", new Matrix4f());
+        shaderProgram.setUniform("model", IDENTITY_MODEL);
 
-        int camLoc = glGetUniformLocation(pid, "cameraPosition");
+        int camLoc = ShaderProgram.uniformLocation(pid, "cameraPosition");
         if (camLoc != -1) {
-            Vector3f cam = new Matrix4f(view).invert(new Matrix4f()).getTranslation(new Vector3f());
+            Vector3f cam = view.invert(VIEW_INVERSE).getTranslation(new Vector3f());
             glUniform3f(camLoc, cam.x, cam.y, cam.z);
         }
 
-        shadowMap.bindForReading(DirectionalShadowMap.SHADOW_MAP_UNIT);
-        int sm = glGetUniformLocation(pid, "shadowMap");
-        if (sm != -1) {
-            glUniform1i(sm, DirectionalShadowMap.SHADOW_MAP_UNIT);
+        shadowMap.bindForReadingArray(DirectionalShadowMap.SHADOW_MAP_UNIT);
+        int sma = ShaderProgram.uniformLocation(pid, "shadowMapArray");
+        if (sma != -1) {
+            glUniform1i(sma, DirectionalShadowMap.SHADOW_MAP_UNIT);
         }
-        int se = glGetUniformLocation(pid, "shadowsEnabled");
+        int se = ShaderProgram.uniformLocation(pid, "shadowsEnabled");
         if (se != -1) {
             glUniform1i(se, shadowSamplingEnabled ? 1 : 0);
         }
-        shaderProgram.setUniform("lightSpaceMatrix", shadowMap.getLightSpaceMatrix());
+        int cc = shadowMap.getCascadeCount();
+        Matrix4f[] mats = shadowMap.getLightSpaceMatrices();
+        for (int i = 0; i < 4; i++) {
+            PADDED_LIGHT_MATRICES[i] = i < cc ? mats[i] : mats[Math.max(0, cc - 1)];
+        }
+        shaderProgram.setUniformMat4Array("lightSpaceMatrix", PADDED_LIGHT_MATRICES, 4);
+        if (cc > 1) {
+            float[] src = shadowMap.getCascadeSplitDistances();
+            int n = cc - 1;
+            System.arraycopy(src, 0, CASCADE_SPLIT_PAD, 0, n);
+            for (int i = n; i < 3; i++) {
+                CASCADE_SPLIT_PAD[i] = GameConfig.FAR_PLANE;
+            }
+            shaderProgram.setUniformFloatArray("cascadeSplitDistance", CASCADE_SPLIT_PAD, 3);
+        }
+        shaderProgram.setUniform("shadowCascadeCount", cc);
+        int uts = ShaderProgram.uniformLocation(pid, "u_shadowMapTexelSize");
+        if (uts != -1) {
+            float inv = 1f / shadowMap.getSize();
+            glUniform2f(uts, inv, inv);
+        }
 
         RuntimeGraphicsSettings rs = RuntimeGraphicsSettings.get();
-        int sbs = glGetUniformLocation(pid, "u_shadowBiasScale");
+        int sbs = ShaderProgram.uniformLocation(pid, "u_shadowBiasScale");
         if (sbs != -1) {
             float bias = pid == worldShaderProgramId ? rs.getShadowBiasWorld() : rs.getShadowBiasGltf();
             glUniform1f(sbs, bias);
         }
-        int srf = glGetUniformLocation(pid, "u_shadowReceiveFloor");
+        int srf = ShaderProgram.uniformLocation(pid, "u_shadowReceiveFloor");
         if (srf != -1) {
             glUniform1f(srf, rs.getGltfShadowReceiveFloor());
         }
 
-        int diagOcc = glGetUniformLocation(pid, "u_diagnosticNoIblOcclusion");
+        int diagOcc = ShaderProgram.uniformLocation(pid, "u_diagnosticNoIblOcclusion");
         if (diagOcc != -1) {
             glUniform1i(diagOcc, GameConfig.effectiveDiagnosticGltfNoIblOcclusion() ? 1 : 0);
         }
-        int pcfShadeN = glGetUniformLocation(pid, "u_shadowPcfUseShadingNormal");
+        int pcfShadeN = ShaderProgram.uniformLocation(pid, "u_shadowPcfUseShadingNormal");
         if (pcfShadeN != -1) {
             glUniform1i(pcfShadeN, rs.isGltfShadowPcfUseShadingNormal() ? 1 : 0);
         }
 
-        int brdfLoc = glGetUniformLocation(pid, "u_brdfLut");
+        int brdfLoc = ShaderProgram.uniformLocation(pid, "u_brdfLut");
         if (brdfLoc != -1 && brdfLut != null) {
             glActiveTexture(GL_TEXTURE0 + WorldRenderer.BRDF_LUT_UNIT);
             glBindTexture(GL_TEXTURE_2D, brdfLut.id());
             glUniform1i(brdfLoc, WorldRenderer.BRDF_LUT_UNIT);
-            int hasBrdf = glGetUniformLocation(pid, "u_hasBrdfLut");
+            int hasBrdf = ShaderProgram.uniformLocation(pid, "u_hasBrdfLut");
             if (hasBrdf != -1) {
                 glUniform1i(hasBrdf, 1);
             }
         }
 
-        int irLoc = glGetUniformLocation(pid, "u_irradianceMap");
+        int irLoc = ShaderProgram.uniformLocation(pid, "u_irradianceMap");
         if (irLoc != -1 && environmentIbl != null) {
             glActiveTexture(GL_TEXTURE0 + EnvironmentIbl.IRRADIANCE_UNIT);
             glBindTexture(GL_TEXTURE_CUBE_MAP, environmentIbl.getIrradianceMap());
             glUniform1i(irLoc, EnvironmentIbl.IRRADIANCE_UNIT);
-            int prLoc = glGetUniformLocation(pid, "u_prefilterMap");
+            int prLoc = ShaderProgram.uniformLocation(pid, "u_prefilterMap");
             if (prLoc != -1) {
                 glActiveTexture(GL_TEXTURE0 + EnvironmentIbl.PREFILTER_UNIT);
                 glBindTexture(GL_TEXTURE_CUBE_MAP, environmentIbl.getPrefilterMap());
                 glUniform1i(prLoc, EnvironmentIbl.PREFILTER_UNIT);
             }
-            int pm = glGetUniformLocation(pid, "u_prefilterMaxMip");
+            int pm = ShaderProgram.uniformLocation(pid, "u_prefilterMaxMip");
             if (pm != -1) {
                 glUniform1f(pm, environmentIbl.getPrefilterMaxMip());
             }
-            int iblI = glGetUniformLocation(pid, "u_iblIntensity");
+            int iblI = ShaderProgram.uniformLocation(pid, "u_iblIntensity");
             if (iblI != -1) {
                 glUniform1f(iblI, lit.iblIntensity());
             }
         }
 
-        int emissiveBoost = glGetUniformLocation(pid, "u_emissiveBoost");
+        int emissiveBoost = ShaderProgram.uniformLocation(pid, "u_emissiveBoost");
         if (emissiveBoost != -1) {
             glUniform1f(emissiveBoost, lit.emissiveBoost());
         }

@@ -20,7 +20,6 @@ layout(std140) uniform JointBlock {
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-uniform mat4 lightSpaceMatrix;
 uniform int u_useSkinning;
 uniform int u_morphCount;
 uniform vec4 u_morphWeightsA;
@@ -33,17 +32,16 @@ out vec2 vUv0;
 out vec2 vUv1;
 out vec4 vColor;
 out mat3 vTbn;
-out vec4 vFragPosLightSpace;
-
 void main()
 {
     vec4 skinnedLocal;
     mat4 skinMat;
     pbrGltfSkinnedLocal(skinnedLocal, skinMat);
-    vec4 world4 = model * skinnedLocal;
+    mat4 M = pbrGltfModelOrBatch();
+    vec4 world4 = M * skinnedLocal;
     vWorldPos = world4.xyz;
 
-    mat3 model3 = mat3(model);
+    mat3 model3 = mat3(M);
     vec3 nLoc;
     vec3 tLoc;
     if (u_useSkinning != 0) {
@@ -66,6 +64,5 @@ void main()
     vUv0 = aUv0;
     vUv1 = aUv1;
     vColor = aColor;
-    vFragPosLightSpace = lightSpaceMatrix * world4;
     gl_Position = projection * view * world4;
 }

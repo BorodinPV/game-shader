@@ -1,7 +1,7 @@
 #version 330 core
 
 #include "/shaders/include/tonemap_exposure.glsl"
-#include "/shaders/include/shadow_pcf3x3.glsl"
+#include "/shaders/include/shadow_pcf_csm_world.glsl"
 
 out vec4 FragColor;
 
@@ -9,7 +9,6 @@ in vec2 TexCoord;
 in vec3 Normal;
 in vec3 FragPos;
 in vec4 VertexColor;
-in vec4 FragPosLightSpace;
 
 uniform sampler2D texture1;
 uniform int useSpecularTexture;
@@ -27,7 +26,6 @@ uniform vec3 diffuseColor;
 uniform float materialAlpha;
 uniform int opaqueGeometryPass;
 
-uniform sampler2D shadowMap;
 uniform int shadowsEnabled;
 
 uniform float exposure;
@@ -57,7 +55,7 @@ void main()
     /* sunDirection — от точки к солнцу (как в SceneLighting); согласовано с ray_trace.comp и sky_pass */
     vec3 Lsun = normalize(sunDirection);
     float sunDiff = max(dot(norm, Lsun), 0.0);
-    float sh = shadowPcf3x3(norm, Lsun, FragPosLightSpace, shadowMap, shadowsEnabled);
+    float sh = shadowPcfCsmWorld(norm, Lsun, FragPos, cameraPosition, shadowsEnabled);
     vec3 sunDiffuse = sunDiff * sunColor * sunIntensity * sh;
 
     vec3 fillDir = normalize(fillDirection);

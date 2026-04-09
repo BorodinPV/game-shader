@@ -2,6 +2,7 @@ package ru.reweu.game.gltf;
 
 import de.javagl.jgltf.model.NodeModel;
 import de.javagl.jgltf.model.SkinModel;
+import java.nio.FloatBuffer;
 import org.joml.Matrix4f;
 
 /**
@@ -11,7 +12,55 @@ public final class GltfSkinMatrices {
 
     public static final int MAX_JOINTS = 64;
 
+    /** Column-major identity; reused for empty joint slots (no per-draw allocation). */
+    private static final Matrix4f JOINT_IDENTITY = new Matrix4f();
+
+    private static final float[] SCRATCH_MESH_GLOBAL = new float[16];
+    private static final float[] SCRATCH_JOINT_GLOBAL = new float[16];
+    private static final float[] SCRATCH_INVERSE_BIND = new float[16];
+    private static final Matrix4f SCR_MESH = new Matrix4f();
+    private static final Matrix4f SCR_INV = new Matrix4f();
+    private static final Matrix4f SCR_JOINT = new Matrix4f();
+    private static final Matrix4f SCR_IBM = new Matrix4f();
+    private static final Matrix4f SCR_COMBINED = new Matrix4f();
+
     private GltfSkinMatrices() {
+    }
+
+    /**
+     * Writes 64 {@code mat4} in order into {@code fb} (std140-compatible column-major layout)
+     * for {@code JointBlock} in {@code pbr_gltf.vert}. Resets {@code fb} position to 0.
+     *
+     * @return number of joints with real skinning matrices (capped); 0 if no skin.
+     */
+    public static int fillJointBuffer(SkinModel skin, NodeModel meshNode, FloatBuffer fb) {
+        fb.clear();
+        if (skin == null || meshNode == null) {
+            for (int j = 0; j < MAX_JOINTS; j++) {
+                JOINT_IDENTITY.get(fb);
+            }
+            fb.rewind();
+            return 0;
+        }
+        meshNode.computeGlobalTransform(SCRATCH_MESH_GLOBAL);
+        SCR_MESH.set(SCRATCH_MESH_GLOBAL);
+        SCR_INV.set(SCR_MESH).invert();
+        int n = skin.getJoints().size();
+        int count = Math.min(n, MAX_JOINTS);
+        for (int j = 0; j < count; j++) {
+            NodeModel jointNode = skin.getJoints().get(j);
+            jointNode.computeGlobalTransform(SCRATCH_JOINT_GLOBAL);
+            SCR_JOINT.set(SCRATCH_JOINT_GLOBAL);
+            skin.getInverseBindMatrix(j, SCRATCH_INVERSE_BIND);
+            SCR_IBM.set(SCRATCH_INVERSE_BIND);
+            SCR_COMBINED.set(SCR_INV).mul(SCR_JOINT).mul(SCR_IBM);
+            SCR_COMBINED.get(fb);
+        }
+        for (int j = count; j < MAX_JOINTS; j++) {
+            JOINT_IDENTITY.get(fb);
+        }
+        fb.rewind();
+        return count;
     }
 
     /**
@@ -21,19 +70,19 @@ public final class GltfSkinMatrices {
         if (skin == null || meshNode == null || out == null) {
             return 0;
         }
-        float[] meshGlobalF = meshNode.computeGlobalTransform(new float[16]);
-        Matrix4f meshGlobal = new Matrix4f().set(meshGlobalF);
-        Matrix4f invMesh = new Matrix4f(meshGlobal).invert();
+        meshNode.computeGlobalTransform(SCRATCH_MESH_GLOBAL);
+        SCR_MESH.set(SCRATCH_MESH_GLOBAL);
+        SCR_INV.set(SCR_MESH).invert();
         int n = skin.getJoints().size();
         int count = Math.min(n, Math.min(out.length, MAX_JOINTS));
-        float[] tmp = new float[16];
         for (int j = 0; j < count; j++) {
             NodeModel jointNode = skin.getJoints().get(j);
-            float[] jg = jointNode.computeGlobalTransform(new float[16]);
-            Matrix4f jointGlobal = new Matrix4f().set(jg);
-            skin.getInverseBindMatrix(j, tmp);
-            Matrix4f ibm = new Matrix4f().set(tmp);
-            out[j] = new Matrix4f(invMesh).mul(jointGlobal).mul(ibm);
+            jointNode.computeGlobalTransform(SCRATCH_JOINT_GLOBAL);
+            SCR_JOINT.set(SCRATCH_JOINT_GLOBAL);
+            skin.getInverseBindMatrix(j, SCRATCH_INVERSE_BIND);
+            SCR_IBM.set(SCRATCH_INVERSE_BIND);
+            SCR_COMBINED.set(SCR_INV).mul(SCR_JOINT).mul(SCR_IBM);
+            out[j] = new Matrix4f(SCR_COMBINED);
         }
         return count;
     }

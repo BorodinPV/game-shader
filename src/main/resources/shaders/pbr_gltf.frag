@@ -2,7 +2,7 @@
 
 #include "/shaders/include/tonemap_exposure.glsl"
 #include "/shaders/include/pbr_ggx.glsl"
-#include "/shaders/include/shadow_pcf3x3_gltf.glsl"
+#include "/shaders/include/shadow_pcf_csm_gltf.glsl"
 #include "/shaders/include/gltf_texture_transform.glsl"
 
 in vec3 vWorldPos;
@@ -11,8 +11,6 @@ in vec2 vUv0;
 in vec2 vUv1;
 in vec4 vColor;
 in mat3 vTbn;
-in vec4 vFragPosLightSpace;
-
 out vec4 FragColor;
 
 uniform vec3 cameraPosition;
@@ -34,7 +32,6 @@ uniform vec3 fillColor;
 uniform float fillStrength;
 uniform float u_fillSpecularStrength;
 
-uniform sampler2D shadowMap;
 uniform int shadowsEnabled;
 
 uniform sampler2D u_brdfLut;
@@ -225,7 +222,7 @@ void main()
 
     vec3 diffuseSun = (1.0 - metallic) * albedo / PI;
     vec3 nPcf = (u_shadowPcfUseShadingNormal != 0) ? N : Nshadow;
-    float sh = shadowPcf3x3(nPcf, L, vFragPosLightSpace, shadowMap, shadowsEnabled);
+    float sh = shadowPcfCsmGltf(nPcf, L, vWorldPos, cameraPosition, shadowsEnabled);
     /* Эмиссив (фары и т.п.) не должны «гаснуть» из‑за ложной тени на тонкой геометрии. */
     float emissiveLum = dot(emissive, vec3(0.299, 0.587, 0.114));
     sh = mix(sh, 1.0, smoothstep(0.0, 0.2, emissiveLum) * 0.92);

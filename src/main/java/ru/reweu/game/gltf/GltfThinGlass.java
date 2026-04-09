@@ -28,13 +28,16 @@ public final class GltfThinGlass {
         float emissiveG,
         float emissiveB,
         GltfModel gltfModel,
-        GltfMaterialExtensionFlags ext
+        GltfMaterialExtensionFlags ext,
+        int materialModelIndex
     ) {
         if (m.getAlphaMode() != MaterialModelV2.AlphaMode.BLEND) {
             return false;
         }
 
-        int matIdx = gltfModel != null ? gltfModel.getMaterialModels().indexOf(m) : -1;
+        int matIdx = materialModelIndex >= 0
+            ? materialModelIndex
+            : (gltfModel != null ? gltfModel.getMaterialModels().indexOf(m) : -1);
         if (matIdx >= 0 && ext != null && ext.hasTransmission(matIdx)) {
             return true;
         }

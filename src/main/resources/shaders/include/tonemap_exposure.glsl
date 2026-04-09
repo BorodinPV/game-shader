@@ -1,5 +1,5 @@
 // Единый ACES + exposure: линейный HDR → display (~sRGB). Подключается первым в корневых .frag / .comp.
-// См. также: math_const.glsl, pbr_ggx.glsl, shadow_pcf3x3.glsl, spherical_equirect_uv.glsl
+// См. также: math_const.glsl, pbr_ggx.glsl, shadow_csm_common.glsl, spherical_equirect_uv.glsl
 
 vec3 acesTonemap(vec3 x)
 {

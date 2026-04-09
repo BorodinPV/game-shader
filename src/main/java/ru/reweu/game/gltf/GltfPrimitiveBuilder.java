@@ -20,6 +20,7 @@ import static org.lwjgl.opengl.GL30.glVertexAttribPointer;
 import de.javagl.jgltf.model.AccessorModel;
 import de.javagl.jgltf.model.MaterialModel;
 import de.javagl.jgltf.model.MeshPrimitiveModel;
+import java.util.IdentityHashMap;
 import de.javagl.jgltf.model.v2.MaterialModelV2;
 import java.nio.FloatBuffer;
 import java.util.Arrays;
@@ -39,7 +40,28 @@ public final class GltfPrimitiveBuilder {
     private GltfPrimitiveBuilder() {
     }
 
-    public static GltfMeshDraw build(MeshPrimitiveModel prim) {
+    /**
+     * Один VAO на {@link MeshPrimitiveModel} (общие узлы/меши в glTF). Счётчик ссылок в {@link GltfMeshDraw#shareCount}.
+     */
+    private static final IdentityHashMap<MeshPrimitiveModel, GltfMeshDraw> PRIMITIVE_GPU_CACHE = new IdentityHashMap<>();
+
+    /**
+     * @param materialModelIndex индекс в {@link de.javagl.jgltf.model.GltfModel#getMaterialModels()} или {@code -1}
+     */
+    public static GltfMeshDraw build(MeshPrimitiveModel prim, int materialModelIndex) {
+        synchronized (PRIMITIVE_GPU_CACHE) {
+            GltfMeshDraw cached = PRIMITIVE_GPU_CACHE.get(prim);
+            if (cached != null) {
+                cached.shareCount++;
+                return cached;
+            }
+            GltfMeshDraw d = buildNew(prim, materialModelIndex);
+            PRIMITIVE_GPU_CACHE.put(prim, d);
+            return d;
+        }
+    }
+
+    private static GltfMeshDraw buildNew(MeshPrimitiveModel prim, int materialModelIndex) {
         AccessorModel posAcc = prim.getAttributes().get("POSITION");
         if (posAcc == null) {
             throw new IllegalArgumentException("POSITION required");
@@ -219,10 +241,12 @@ public final class GltfPrimitiveBuilder {
             indices.length,
             indexGlType,
             mat,
+            materialModelIndex,
             morphCount,
             targets != null ? targets.size() : 0,
             cpuPos,
-            cpuIdx
+            cpuIdx,
+            prim
         );
     }
 
@@ -266,9 +290,18 @@ public final class GltfPrimitiveBuilder {
         if (d == null) {
             return;
         }
-        glDeleteVertexArrays(d.vao);
-        glDeleteBuffers(d.vbo);
-        glDeleteBuffers(d.ebo);
+        synchronized (PRIMITIVE_GPU_CACHE) {
+            if (d.sharedPrimitiveKey != null) {
+                d.shareCount--;
+                if (d.shareCount > 0) {
+                    return;
+                }
+                PRIMITIVE_GPU_CACHE.remove(d.sharedPrimitiveKey);
+            }
+            glDeleteVertexArrays(d.vao);
+            glDeleteBuffers(d.vbo);
+            glDeleteBuffers(d.ebo);
+        }
     }
 
     public static final class GltfMeshDraw {
@@ -278,6 +311,8 @@ public final class GltfPrimitiveBuilder {
         public final int indexCount;
         public final int indexGlType;
         public final MaterialModelV2 material;
+        /** Индекс в {@code model.getMaterialModels()} для расширений/эвристик без {@code indexOf} на кадр. */
+        public final int materialModelIndex;
         /** Number of morph targets with GPU attributes (0–4). */
         public final int morphGpuCount;
         /** Total morph targets in primitive (may exceed GPU cap). */
@@ -290,6 +325,11 @@ public final class GltfPrimitiveBuilder {
         public final float[] cpuPositions;
         public final int[] cpuIndices;
 
+        /** Ключ кэша GPU; один объект примитива — один VAO. */
+        public final MeshPrimitiveModel sharedPrimitiveKey;
+        /** Число владельцев ({@link GltfScene.GltfDrawableInstance}); уменьшается в {@link GltfPrimitiveBuilder#delete}. */
+        public int shareCount;
+
         GltfMeshDraw(
             int vao,
             int vbo,
@@ -297,10 +337,12 @@ public final class GltfPrimitiveBuilder {
             int indexCount,
             int indexGlType,
             MaterialModelV2 material,
+            int materialModelIndex,
             int morphGpuCount,
             int morphTotalCount,
             float[] cpuPositions,
-            int[] cpuIndices
+            int[] cpuIndices,
+            MeshPrimitiveModel sharedPrimitiveKey
         ) {
             this.vao = vao;
             this.vbo = vbo;
@@ -308,10 +350,13 @@ public final class GltfPrimitiveBuilder {
             this.indexCount = indexCount;
             this.indexGlType = indexGlType;
             this.material = material;
+            this.materialModelIndex = materialModelIndex;
             this.morphGpuCount = morphGpuCount;
             this.morphTotalCount = morphTotalCount;
             this.cpuPositions = cpuPositions;
             this.cpuIndices = cpuIndices;
+            this.sharedPrimitiveKey = sharedPrimitiveKey;
+            this.shareCount = 1;
         }
     }
 }

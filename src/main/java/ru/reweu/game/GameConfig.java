@@ -32,10 +32,6 @@ public final class GameConfig {
     /** Вторая машина (рядом с Mustang по +X). Файл положить в {@code models/}. */
     public static final String TOYOTA_AE86_GLB = "/models/toyota_ae86_sprinter_trueno_zenki.glb";
 
-    /** Третья и четвёртая glTF-машины в линию по +X после AE86. */
-    public static final String A_LAND_EXPLORER_FREE_GLB = "/models/a_land_explorer_free.glb";
-    public static final String BEETLE_FUSCA_VERSION_1_GLB = "/models/beetlefusca_version_1.glb";
-
     /**
      * {@code true}: Mustang через нативный glTF 2.0 runtime (jgltf + PBR); {@code false}: Assimp + упрощённый шейдер.
      */
@@ -109,38 +105,6 @@ public final class GameConfig {
     public static final float TOYOTA_AE86_WORLD_Z = 0f;
     public static final float TOYOTA_AE86_ABOVE_TERRAIN = 0.065f;
 
-    public static final float LAND_EXPLORER_WORLD_X = 15.5f;
-    public static final float LAND_EXPLORER_WORLD_Z = 0f;
-    public static final float LAND_EXPLORER_ABOVE_TERRAIN = 0.065f;
-
-    public static final float BEETLE_FUSCA_WORLD_X = 22f;
-    public static final float BEETLE_FUSCA_WORLD_Z = 0f;
-    public static final float BEETLE_FUSCA_ABOVE_TERRAIN = 0.065f;
-
-    /** Масштаб смещения орто-центра тени к средней позиции машин по XZ. */
-    public static final float SHADOW_ORTHO_CENTER_SCALE = 0.55f;
-
-    /** Орто-центр тени по X из средней координаты машин по X (для {@link ru.reweu.game.render.DirectionalShadowMap}). */
-    public static float shadowOrthoCenterXFromAvg(float avgWorldX) {
-        return avgWorldX * SHADOW_ORTHO_CENTER_SCALE;
-    }
-
-    /** Орто-центр тени по Z из средней координаты машин по Z. */
-    public static float shadowOrthoCenterZFromAvg(float avgWorldZ) {
-        return avgWorldZ * SHADOW_ORTHO_CENTER_SCALE;
-    }
-
-    /** Стартовый центр теней по константам постановки (два автомобиля). */
-    public static float shadowOrthoCenterX() {
-        float ax = (FORD_MUSTANG_WORLD_X + TOYOTA_AE86_WORLD_X) * 0.5f;
-        return shadowOrthoCenterXFromAvg(ax);
-    }
-
-    public static float shadowOrthoCenterZ() {
-        float az = (FORD_MUSTANG_WORLD_Z + TOYOTA_AE86_WORLD_Z) * 0.5f;
-        return shadowOrthoCenterZFromAvg(az);
-    }
-
     public static final float CAMERA_EYE_HEIGHT = 1.65f;
 
     public static final float FOV_DEGREES = 45f;
@@ -153,6 +117,17 @@ public final class GameConfig {
      */
     public static final boolean RAY_TRACE_ENABLED = false;
 
+    /**
+     * Демо: сетка инстансированных кубов ({@link ru.reweu.game.render.InstancingDemoRenderer}) поверх сцены.
+     * Без пересборки: {@code GAME_INSTANCING_DEMO=1}.
+     */
+    public static final boolean INSTANCING_DEMO_ENABLED = false;
+
+    /** Демо-кубы: константа или env {@code GAME_INSTANCING_DEMO}. */
+    public static boolean effectiveInstancingDemoEnabled() {
+        return INSTANCING_DEMO_ENABLED || envFlag("GAME_INSTANCING_DEMO", false);
+    }
+
     /** Максимум треугольников в SSBO (линейный перебор на GPU). */
     public static final int RAY_TRACE_MAX_TRIANGLES = 120_000;
 
@@ -160,9 +135,13 @@ public final class GameConfig {
     public static final int RAY_TRACE_INTERNAL_SCALE = 2;
 
     /**
-     * {@code true}: VSync (частота кадров ≈ герцовка монитора). {@code false}: без ограничения по FPS со стороны swap (возможен tearing).
+     * VSync привязывает выдачу кадров к герцовке монитора (ограничение FPS). По умолчанию выключено —
+     * без лимита со стороны {@code glfwSwapInterval} (возможен tearing). Включить явно:
+     * {@code GAME_VSYNC=1} или {@code true}.
      */
-    public static final boolean VSYNC = false;
+    public static boolean effectiveVsync() {
+        return envFlag("GAME_VSYNC", false);
+    }
 
     /**
      * {@code false} (по умолчанию): наружная сцена — направленное солнце, трава, тени под машиной.<br>
@@ -202,8 +181,22 @@ public final class GameConfig {
         return parseFloatEnv("GAME_IBL_INTENSITY_SCALE", 1f);
     }
 
+    /** Число каскадов карты теней (CSM). Env: {@code GAME_SHADOW_CASCADES} (1–4). */
+    public static final int DEFAULT_SHADOW_CASCADE_COUNT = 3;
+
+    /** Смесь log/uniform для границ каскадов (0–1). */
+    public static final float SHADOW_CASCADE_LAMBDA = 0.75f;
+
     /** По умолчанию 2048; env {@code GAME_SHADOW_MAP_SIZE} (512–8192, к ближайшей степени двойки). */
     public static final int DEFAULT_SHADOW_MAP_SIZE = 2048;
+
+    /**
+     * Каскады теней: константа или env {@code GAME_SHADOW_CASCADES} (1–4).
+     */
+    public static int effectiveShadowCascadeCount() {
+        int v = parseIntEnv("GAME_SHADOW_CASCADES", DEFAULT_SHADOW_CASCADE_COUNT);
+        return Math.max(1, Math.min(4, v));
+    }
 
     /**
      * Разрешение ортокарты теней. Env: {@code GAME_SHADOW_MAP_SIZE} (например 4096).
@@ -325,11 +318,13 @@ public final class GameConfig {
                 + " exposureScale=" + effectiveExposureScale()
                 + " iblIntensityScale=" + effectiveIblIntensityScale()
                 + " shadowMapSize=" + effectiveShadowMapSize()
+                + " shadowCascades=" + effectiveShadowCascadeCount()
+                + " instancingDemo=" + effectiveInstancingDemoEnabled()
                 + " " + biasPart);
         if (USE_GLTF_NATIVE_LOADER) {
             System.err.println("[Config] gltf: " + GLTF_TOYOTA_DIAGNOSTIC_NOTE);
             System.err.println(
-                "[Config] gltf shadow: shadow_pcf3x3_gltf.glsl; emissive softens sh; receiveFloor="
+                "[Config] gltf shadow: CSM (shadow_pcf_csm_gltf); emissive softens sh; receiveFloor="
                     + effectiveGltfShadowReceiveFloor()
                     + " (GAME_SHADOW_RECEIVE_FLOOR; min direct sun sh)");
             int vis = effectiveGltfDebugVisualizeMode();

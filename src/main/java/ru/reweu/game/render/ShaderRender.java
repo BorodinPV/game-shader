@@ -1,10 +1,25 @@
 package ru.reweu.game.render;
 
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import ru.reweu.game.loader.Mesh;
 
 public class ShaderRender {
+
+    private static final Vector3f TMP_SORT_POS = new Vector3f();
+    private static float[] transparentDistScratch;
+    private static int[] transparentOrderScratch;
+
+    /** Упорядочить меши по «состоянию материала» — меньше переключений текстур в одном батче. */
+    public static void sortMeshesByMaterialState(Mesh[] meshes) {
+        if (meshes == null || meshes.length <= 1) {
+            return;
+        }
+        Arrays.sort(meshes, Comparator.comparingLong(Mesh::materialStateKey));
+    }
 
     /** Карта теней: только depth. */
     public static void renderWorldMeshesDepth(
@@ -63,15 +78,21 @@ public class ShaderRender {
         Matrix4f model,
         Matrix4f view,
         Matrix4f projection,
-        org.joml.Vector3f cameraWorldPos
+        Vector3f cameraWorldPos
     ) {
         if (meshes.isEmpty()) {
             return;
         }
-        meshes.sort((a, b) -> Float.compare(
-            distSqWorld(b, model, cameraWorldPos),
-            distSqWorld(a, model, cameraWorldPos)
-        ));
+        int n = meshes.size();
+        ensureTransparentScratch(n);
+        float[] distSq = transparentDistScratch;
+        int[] order = transparentOrderScratch;
+        for (int i = 0; i < n; i++) {
+            TMP_SORT_POS.set(meshes.get(i).getLocalCenterApprox());
+            model.transformPosition(TMP_SORT_POS);
+            distSq[i] = TMP_SORT_POS.distanceSquared(cameraWorldPos);
+        }
+        sortIndicesDescendingByFloatKey(distSq, order, n);
         shaderProgram.use();
         if (view != null) {
             shaderProgram.setUniform("view", view);
@@ -80,14 +101,33 @@ public class ShaderRender {
             shaderProgram.setUniform("projection", projection);
         }
         shaderProgram.setUniform("model", model);
-        for (Mesh m : meshes) {
-            m.render(false);
+        for (int i = 0; i < n; i++) {
+            meshes.get(order[i]).render(false);
         }
     }
 
-    private static float distSqWorld(Mesh m, Matrix4f model, org.joml.Vector3f cam) {
-        org.joml.Vector3f p = m.getLocalCenterApprox();
-        model.transformPosition(p);
-        return p.distanceSquared(cam);
+    private static void ensureTransparentScratch(int n) {
+        if (transparentDistScratch == null || transparentDistScratch.length < n) {
+            int cap = Math.max(n, transparentDistScratch == null ? 16 : transparentDistScratch.length * 2);
+            transparentDistScratch = new float[cap];
+            transparentOrderScratch = new int[cap];
+        }
+    }
+
+    /** Сортирует {@code indices[0..n)} — перестановка: {@code keys[indices[i]]} по убыванию. */
+    private static void sortIndicesDescendingByFloatKey(float[] keys, int[] indices, int n) {
+        for (int i = 0; i < n; i++) {
+            indices[i] = i;
+        }
+        for (int i = 1; i < n; i++) {
+            int curr = indices[i];
+            float kc = keys[curr];
+            int j = i - 1;
+            while (j >= 0 && keys[indices[j]] < kc) {
+                indices[j + 1] = indices[j];
+                j--;
+            }
+            indices[j + 1] = curr;
+        }
     }
 }

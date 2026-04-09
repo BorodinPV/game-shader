@@ -12,13 +12,17 @@ import ru.reweu.game.gui.PauseMenu;
 import java.nio.file.Path;
 import ru.reweu.game.gltf.GltfPbrRenderer;
 import ru.reweu.game.gltf.GltfScene;
+import ru.reweu.game.loader.Mesh;
 import ru.reweu.game.loader.ModelLoader;
 import ru.reweu.game.loader.ResourceLoader;
 import ru.reweu.game.render.BrdfLutTexture;
 import ru.reweu.game.render.DirectionalShadowMap;
+import ru.reweu.game.render.InstancingDemoRenderer;
 import ru.reweu.game.render.ibl.EnvironmentIbl;
 import ru.reweu.game.render.ibl.IblEquirectLoader;
+import ru.reweu.game.render.LightingFrame;
 import ru.reweu.game.render.RenderErrorLog;
+import ru.reweu.game.render.SceneLighting;
 import ru.reweu.game.render.SceneRenderer;
 import ru.reweu.game.render.ShaderProgram;
 import ru.reweu.game.render.SkyRenderer;
@@ -35,6 +39,7 @@ import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
 import static org.lwjgl.opengl.GL11.glClear;
+import static org.lwjgl.opengl.GL11.glClearColor;
 import static org.lwjgl.opengl.GL11.glEnable;
 import static org.lwjgl.opengl.GL30.GL_FRAMEBUFFER_SRGB;
 import static org.lwjgl.opengl.GL11C.GL_BLEND;
@@ -56,14 +61,12 @@ public class Game3d {
 
     private final List<ru.reweu.game.loader.Mesh[]> landscape = new ArrayList<>();
     private final List<ru.reweu.game.loader.Mesh[]> propMeshes = new ArrayList<>();
+    /** Позиции для каждого элемента {@link #propMeshes} (машина Assimp и т.д.). */
+    private final List<Vector3f> propInstancePositions = new ArrayList<>();
     /** Позиция Mustang / Assimp-пропа; индекс 0 в {@link #gltfWorldPositions}. */
     private final Vector3f propPosition = new Vector3f();
     /** Позиция AE86; индекс 1. Меняйте X/Z при движении — Y обновляет рельеф. */
     private final Vector3f toyotaWorldPosition = new Vector3f();
-    /** Land Explorer; индекс 2. */
-    private final Vector3f landExplorerWorldPosition = new Vector3f();
-    /** Beetle Fusca; индекс 3. */
-    private final Vector3f beetleFuscaWorldPosition = new Vector3f();
     private final List<GltfScene> gltfScenes = new ArrayList<>();
     private final List<Vector3f> gltfWorldPositions = new ArrayList<>();
     private final List<Float> gltfScales = new ArrayList<>();
@@ -78,6 +81,7 @@ public class Game3d {
     private EnvironmentIbl environmentIbl;
     private ShaderProgram skyShaderProgram;
     private RayTraceRenderer rayTraceRenderer;
+    private InstancingDemoRenderer instancingDemo;
 
     private float lastFrameTime;
     private float deltaTime;
@@ -85,6 +89,9 @@ public class Game3d {
     private PauseMenu pauseMenu;
     private boolean menuOpen;
     private boolean escKeyDown;
+
+    private final int[] framebufferWidthArr = new int[1];
+    private final int[] framebufferHeightArr = new int[1];
 
     public void run() {
         System.out.println("Starting LWJGL " + Version.getVersion() + "!");
@@ -106,7 +113,15 @@ public class Game3d {
         }
 
         long primaryMonitor = glfwGetPrimaryMonitor();
-        GLFWVidMode vidmode = glfwGetVideoMode(primaryMonitor);
+        int windowWidth = 1280;
+        int windowHeight = 720;
+        if (primaryMonitor != NULL) {
+            GLFWVidMode vidmode = glfwGetVideoMode(primaryMonitor);
+            if (vidmode != null) {
+                windowWidth = vidmode.width();
+                windowHeight = vidmode.height();
+            }
+        }
 
         glfwDefaultWindowHints();
         if (GameConfig.RAY_TRACE_ENABLED) {
@@ -118,13 +133,13 @@ public class Game3d {
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
         glfwWindowHint(GLFW_SAMPLES, 4);
 
-        window = glfwCreateWindow(vidmode.width(), vidmode.height(), "Simple Cube", NULL, NULL);
+        window = glfwCreateWindow(windowWidth, windowHeight, "Simple Cube", NULL, NULL);
         if (window == NULL) {
             throw new RuntimeException("Failed to create the GLFW window");
         }
 
         glfwMakeContextCurrent(window);
-        glfwSwapInterval(GameConfig.VSYNC ? 1 : 0);
+        glfwSwapInterval(GameConfig.effectiveVsync() ? 1 : 0);
         glfwShowWindow(window);
 
         GL.createCapabilities();
@@ -164,17 +179,14 @@ public class Game3d {
                 gltfScenes.add(GltfScene.load(mustangPath));
                 Path toyotaPath = ResourceLoader.loadResourceAsFile(GameConfig.TOYOTA_AE86_GLB).toPath();
                 gltfScenes.add(GltfScene.load(toyotaPath));
-                Path explorerPath = ResourceLoader.loadResourceAsFile(GameConfig.A_LAND_EXPLORER_FREE_GLB).toPath();
-                gltfScenes.add(GltfScene.load(explorerPath));
-                Path beetlePath = ResourceLoader.loadResourceAsFile(GameConfig.BEETLE_FUSCA_VERSION_1_GLB).toPath();
-                gltfScenes.add(GltfScene.load(beetlePath));
             } catch (Exception e) {
-                RenderErrorLog.warn("Failed to load glTF cars (Mustang, AE86, Explorer, Beetle)", e);
+                RenderErrorLog.warn("Failed to load glTF cars (Mustang, AE86)", e);
                 throw new RuntimeException("Failed to load glTF cars", e);
             }
         } else {
             propMeshes.add(
                 ModelLoader.loadModel(GameConfig.FORD_MUSTANG_1965_GLB, GameConfig.FORD_MUSTANG_MODEL_SCALE));
+            propInstancePositions.add(propPosition);
             if (GameConfig.isDumpAssimpReportOnStart()) {
                 ModelLoader.dumpLoadedMeshesSummary(propMeshes.get(propMeshes.size() - 1));
             }
@@ -205,37 +217,28 @@ public class Game3d {
                 Float.isFinite(h2) ? h2 + GameConfig.TOYOTA_AE86_ABOVE_TERRAIN : 1f,
                 tz
             );
-            float lx = GameConfig.LAND_EXPLORER_WORLD_X;
-            float lz = GameConfig.LAND_EXPLORER_WORLD_Z;
-            float hl = terrainSurface.heightAt(lx, lz);
-            landExplorerWorldPosition.set(
-                lx,
-                Float.isFinite(hl) ? hl + GameConfig.LAND_EXPLORER_ABOVE_TERRAIN : 1f,
-                lz
-            );
-            float bx = GameConfig.BEETLE_FUSCA_WORLD_X;
-            float bz = GameConfig.BEETLE_FUSCA_WORLD_Z;
-            float hb = terrainSurface.heightAt(bx, bz);
-            beetleFuscaWorldPosition.set(
-                bx,
-                Float.isFinite(hb) ? hb + GameConfig.BEETLE_FUSCA_ABOVE_TERRAIN : 1f,
-                bz
-            );
             gltfWorldPositions.add(propPosition);
             float baseScale = GameConfig.FORD_MUSTANG_MODEL_SCALE;
             gltfScales.add(baseScale);
             gltfWorldPositions.add(toyotaWorldPosition);
-            gltfWorldPositions.add(landExplorerWorldPosition);
-            gltfWorldPositions.add(beetleFuscaWorldPosition);
             float ex0 = GltfScene.boundingMaxEdgeLength(gltfScenes.get(0));
             for (int i = 1; i < gltfScenes.size(); i++) {
                 float ex = GltfScene.boundingMaxEdgeLength(gltfScenes.get(i));
                 gltfScales.add(ex > 1e-8f ? baseScale * (ex0 / ex) : baseScale);
             }
+            int n = gltfScenes.size();
+            if (gltfWorldPositions.size() != n || gltfScales.size() != n) {
+                throw new IllegalStateException(
+                    "gltfScenes size " + n + " must match gltfWorldPositions (" + gltfWorldPositions.size()
+                        + ") and gltfScales (" + gltfScales.size() + ")");
+            }
         }
 
         skyShaderProgram = new ShaderProgram("/shaders/sky_pass.vert", "/shaders/sky_pass.frag");
         worldRenderer = new WorldRenderer(worldShaderProgram, shadowMap, brdfLutTexture, environmentIbl);
+        if (GameConfig.effectiveInstancingDemoEnabled()) {
+            instancingDemo = new InstancingDemoRenderer();
+        }
         RayTraceRenderer rt = null;
         if (GameConfig.RAY_TRACE_ENABLED) {
             if (!GL.getCapabilities().OpenGL43) {
@@ -248,7 +251,7 @@ public class Game3d {
                         gltfWorldPositions,
                         gltfScales,
                         propMeshes,
-                        propPosition
+                        propInstancePositions
                     );
                     rayTraceRenderer = rt;
                 } catch (Exception e) {
@@ -259,7 +262,7 @@ public class Game3d {
         sceneRenderer = new SceneRenderer(
             landscape,
             propMeshes,
-            propPosition,
+            propInstancePositions,
             gltfShaderProgram,
             gltfScenes,
             gltfWorldPositions,
@@ -268,7 +271,8 @@ public class Game3d {
             meshDepthShader,
             gltfDepthShader,
             skyShaderProgram,
-            rt
+            rt,
+            instancingDemo
         );
 
         camera = new Camera(new Vector3f(0.0f, 1.0f, 3.0f), new Vector3f(0.0f, 1.0f, 0.0f), 90.0f, 0.0f);
@@ -292,7 +296,6 @@ public class Game3d {
 
         while (!glfwWindowShouldClose(window)) {
             fpsCounter.update();
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             float currentFrame = (float) glfwGetTime();
             deltaTime = currentFrame - lastFrameTime;
             lastFrameTime = currentFrame;
@@ -302,11 +305,17 @@ public class Game3d {
             syncCarHeightFromTerrain();
             snapCameraToTerrain();
 
+            RuntimeGraphicsSettings rs = RuntimeGraphicsSettings.get();
+            LightingFrame lit = SceneLighting.frame(rs);
+            Vector3f clearRgb = lit.clearColor();
+            glClearColor(clearRgb.x, clearRgb.y, clearRgb.z, 1f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
             Matrix4f view = camera.getViewMatrix();
-            int[] fbW = new int[1];
-            int[] fbH = new int[1];
-            glfwGetFramebufferSize(window, fbW, fbH);
-            float aspect = (float) fbW[0] / (float) Math.max(1, fbH[0]);
+            glfwGetFramebufferSize(window, framebufferWidthArr, framebufferHeightArr);
+            int fbW = framebufferWidthArr[0];
+            int fbH = framebufferHeightArr[0];
+            float aspect = (float) fbW / (float) Math.max(1, fbH);
             Matrix4f projection = new Matrix4f().perspective(
                 (float) Math.toRadians(GameConfig.FOV_DEGREES),
                 aspect,
@@ -315,15 +324,16 @@ public class Game3d {
             );
 
             sceneRenderer.renderTransparent(
+                lit,
                 view,
                 projection,
                 camera.getPosition(),
                 deltaTime,
-                fbW[0],
-                fbH[0]
+                fbW,
+                fbH
             );
 
-            if (RuntimeGraphicsSettings.get().isShowFpsOverlay()) {
+            if (rs.isShowFpsOverlay()) {
                 fpsCounter.render();
             }
             if (menuOpen) {
@@ -374,32 +384,19 @@ public class Game3d {
      * Подстраивает Y машин под рельеф по текущим X/Z. Вызывайте после изменения X/Z (физика, ввод).
      */
     private void syncCarHeightFromTerrain() {
-        if (gltfScenes.isEmpty()) {
-            return;
-        }
-        float px = propPosition.x;
-        float pz = propPosition.z;
-        float h = terrainSurface.heightAt(px, pz);
-        if (Float.isFinite(h)) {
-            propPosition.y = h + GameConfig.FORD_MUSTANG_ABOVE_TERRAIN;
-        }
-        float tx = toyotaWorldPosition.x;
-        float tz = toyotaWorldPosition.z;
-        float h2 = terrainSurface.heightAt(tx, tz);
-        if (Float.isFinite(h2)) {
-            toyotaWorldPosition.y = h2 + GameConfig.TOYOTA_AE86_ABOVE_TERRAIN;
-        }
-        float lx = landExplorerWorldPosition.x;
-        float lz = landExplorerWorldPosition.z;
-        float hl = terrainSurface.heightAt(lx, lz);
-        if (Float.isFinite(hl)) {
-            landExplorerWorldPosition.y = hl + GameConfig.LAND_EXPLORER_ABOVE_TERRAIN;
-        }
-        float bx = beetleFuscaWorldPosition.x;
-        float bz = beetleFuscaWorldPosition.z;
-        float hb = terrainSurface.heightAt(bx, bz);
-        if (Float.isFinite(hb)) {
-            beetleFuscaWorldPosition.y = hb + GameConfig.BEETLE_FUSCA_ABOVE_TERRAIN;
+        if (!gltfScenes.isEmpty()) {
+            float px = propPosition.x;
+            float pz = propPosition.z;
+            float h = terrainSurface.heightAt(px, pz);
+            if (Float.isFinite(h)) {
+                propPosition.y = h + GameConfig.FORD_MUSTANG_ABOVE_TERRAIN;
+            }
+            float tx = toyotaWorldPosition.x;
+            float tz = toyotaWorldPosition.z;
+            float h2 = terrainSurface.heightAt(tx, tz);
+            if (Float.isFinite(h2)) {
+                toyotaWorldPosition.y = h2 + GameConfig.TOYOTA_AE86_ABOVE_TERRAIN;
+            }
         }
     }
 
@@ -411,16 +408,6 @@ public class Game3d {
     /** Вторая glTF-машина (AE86). */
     public Vector3f getSecondCarWorldPosition() {
         return toyotaWorldPosition;
-    }
-
-    /** Третья glTF-машина (Land Explorer). */
-    public Vector3f getThirdCarWorldPosition() {
-        return landExplorerWorldPosition;
-    }
-
-    /** Четвёртая glTF-машина (Beetle Fusca). */
-    public Vector3f getFourthCarWorldPosition() {
-        return beetleFuscaWorldPosition;
     }
 
     private void snapCameraToTerrain() {
@@ -469,6 +456,9 @@ public class Game3d {
         }
         if (rayTraceRenderer != null) {
             rayTraceRenderer.cleanup();
+        }
+        if (instancingDemo != null) {
+            instancingDemo.cleanup();
         }
         worldShaderProgram.cleanup();
     }

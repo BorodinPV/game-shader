@@ -85,7 +85,7 @@ public final class SceneLighting {
     }
 
     /**
-     * Полный снимок освещения на кадр — один раз на кадр в {@link ru.reweu.game.render.SceneRenderer}.
+     * Полный снимок освещения на кадр — один раз на кадр в {@link ru.reweu.game.Game3d} и передаётся в рендер.
      */
     public static LightingFrame frame() {
         return frame(RuntimeGraphicsSettings.get());

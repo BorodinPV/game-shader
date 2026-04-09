@@ -10,12 +10,9 @@ out vec2 TexCoord;
 out vec3 Normal;
 out vec3 FragPos;
 out vec4 VertexColor;
-out vec4 FragPosLightSpace;
-
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-uniform mat4 lightSpaceMatrix;
 
 // Если в OBJ не было UV (Blender экспорт без развёртки), Mesh задаёт планарную проекцию по XZ
 uniform int usePlanarUv;
@@ -25,7 +22,6 @@ void main()
 {
     vec3 worldPos = vec3(model * vec4(aPos, 1.0));
     FragPos = worldPos;
-    FragPosLightSpace = lightSpaceMatrix * vec4(worldPos, 1.0);
     Normal = mat3(transpose(inverse(model))) * aNormal;
     gl_Position = projection * view * vec4(worldPos, 1.0);
     VertexColor = aVertexColor;

@@ -80,7 +80,7 @@ public final class RayTraceRenderer {
         List<Vector3f> gltfWorldPositions,
         List<Float> gltfScales,
         List<Mesh[]> propMeshes,
-        Vector3f propPosition
+        List<Vector3f> propPositions
     ) {
         if (!GL.getCapabilities().OpenGL43) {
             RenderErrorLog.warn("Ray tracing requires OpenGL 4.3 (compute shaders)");
@@ -97,14 +97,14 @@ public final class RayTraceRenderer {
             gltfWorldPositions != null ? gltfWorldPositions : new ArrayList<>(),
             gltfScales != null ? gltfScales : new ArrayList<>()
         );
-        Matrix4f propModel = RayTraceGeometry.gltfRootModel(propPosition);
+        List<Vector3f> propPos = propPositions != null ? propPositions : new ArrayList<>();
         int built = RayTraceGeometry.build(
             landscape,
             landM,
             scenes,
             gltfRoots,
             propMeshes,
-            propModel,
+            propPos,
             maxT,
             buf
         );

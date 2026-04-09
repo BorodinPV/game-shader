@@ -17,21 +17,23 @@ import static org.lwjgl.opengl.GL20.glGetProgrami;
 import static org.lwjgl.opengl.GL20.glGetShaderInfoLog;
 import static org.lwjgl.opengl.GL20.glGetShaderi;
 import static org.lwjgl.opengl.GL20.glGetUniformLocation;
+import static org.lwjgl.opengl.GL20.glUniformMatrix4fv;
 import static org.lwjgl.opengl.GL20.glLinkProgram;
 import static org.lwjgl.opengl.GL20.glShaderSource;
 import static org.lwjgl.opengl.GL20.glUniform1f;
+import static org.lwjgl.opengl.GL20.glUniform1fv;
 import static org.lwjgl.opengl.GL20.glUniform1i;
 import static org.lwjgl.opengl.GL20.glUniform3f;
-import static org.lwjgl.opengl.GL20.glUniformMatrix4fv;
 import static org.lwjgl.opengl.GL20.glUseProgram;
 import static org.lwjgl.system.MemoryStack.stackPush;
 
+import java.nio.FloatBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import ru.reweu.game.loader.ResourceLoader;
@@ -40,7 +42,8 @@ public class ShaderProgram {
     private final int programId;
     private static int activeProgramId;
 
-    private final Map<String, Integer> uniforms;
+    /** programId → (name → location), включая -1 для отсутствующих uniform. */
+    private static final Map<Integer, Map<String, Integer>> UNIFORM_LOCATIONS_BY_PROGRAM = new ConcurrentHashMap<>();
 
     public ShaderProgram(String vertexShaderPath, String fragmentShaderPath) {
         programId = glCreateProgram();
@@ -61,8 +64,24 @@ public class ShaderProgram {
         glDetachShader(programId, fragmentShaderId);
         glDeleteShader(vertexShaderId);
         glDeleteShader(fragmentShaderId);
+    }
 
-        uniforms = new HashMap<>();
+    /**
+     * Кэшированный результат glGetUniformLocation для произвольной программы (в т.ч. только по id активной программы).
+     */
+    public static int uniformLocation(int programId, String name) {
+        return UNIFORM_LOCATIONS_BY_PROGRAM
+            .computeIfAbsent(programId, k -> new ConcurrentHashMap<>())
+            .computeIfAbsent(name, n -> glGetUniformLocation(programId, n));
+    }
+
+    public int uniformLocation(String name) {
+        return uniformLocation(programId, name);
+    }
+
+    /** Удалить кэш uniform после удаления программы (в т.ч. compute-программы не из этого класса). */
+    public static void removeUniformCacheForProgram(int programId) {
+        UNIFORM_LOCATIONS_BY_PROGRAM.remove(programId);
     }
 
     private int loadShader(String resourcePath, int type) {
@@ -157,18 +176,15 @@ public class ShaderProgram {
     }
 
     public void setUniform(String name, float value) {
-        int location = glGetUniformLocation(programId, name);
+        int location = uniformLocation(name);
         if (location != -1) {
             glUniform1f(location, value);
         }
     }
 
     public void setUniform(String name, Matrix4f value) {
-        if (!uniforms.containsKey(name)) {
-            uniforms.put(name, glGetUniformLocation(programId, name));
-        }
-        Integer loc = uniforms.get(name);
-        if (loc == null || loc == -1) {
+        int loc = uniformLocation(name);
+        if (loc == -1) {
             return;
         }
         try (var stack = stackPush()) {
@@ -177,11 +193,8 @@ public class ShaderProgram {
     }
 
     public void setUniform(String name, Vector3f value) {
-        if (!uniforms.containsKey(name)) {
-            uniforms.put(name, glGetUniformLocation(programId, name));
-        }
-        Integer loc = uniforms.get(name);
-        if (loc == null || loc == -1) {
+        int loc = uniformLocation(name);
+        if (loc == -1) {
             return;
         }
         glUniform3f(loc, value.x, value.y, value.z);
@@ -189,11 +202,8 @@ public class ShaderProgram {
 
     // Метод для установки булевого значения
     public void setUniform(String name, boolean value) {
-        if (!uniforms.containsKey(name)) {
-            uniforms.put(name, glGetUniformLocation(programId, name));
-        }
-        Integer loc = uniforms.get(name);
-        if (loc == null || loc == -1) {
+        int loc = uniformLocation(name);
+        if (loc == -1) {
             return;
         }
         glUniform1i(loc, value ? 1 : 0);
@@ -201,18 +211,52 @@ public class ShaderProgram {
 
     // Метод для установки целого значения (например, для текстурных сэмплеров)
     public void setUniform(String name, int value) {
-        if (!uniforms.containsKey(name)) {
-            uniforms.put(name, glGetUniformLocation(programId, name));
-        }
-        Integer loc = uniforms.get(name);
-        if (loc == null || loc == -1) {
+        int loc = uniformLocation(name);
+        if (loc == -1) {
             return;
         }
         glUniform1i(loc, value);
     }
 
+    /** Первые {@code count} матриц в uniform-массив {@code mat4 name[]}. */
+    public void setUniformMat4Array(String name, Matrix4f[] matrices, int count) {
+        if (count <= 0) {
+            return;
+        }
+        try (var stack = stackPush()) {
+            for (int i = 0; i < count; i++) {
+                int loc = uniformLocation(programId, name + "[" + i + "]");
+                if (loc == -1) {
+                    continue;
+                }
+                glUniformMatrix4fv(loc, false, matrices[i].get(stack.mallocFloat(16)));
+            }
+        }
+    }
+
+    /** Первые {@code count} элементов {@code float name[]}. */
+    public void setUniformFloatArray(String name, float[] values, int count) {
+        if (count <= 0 || values == null) {
+            return;
+        }
+        int loc = glGetUniformLocation(programId, name + "[0]");
+        if (loc == -1) {
+            loc = glGetUniformLocation(programId, name);
+        }
+        if (loc == -1) {
+            return;
+        }
+        try (var stack = stackPush()) {
+            FloatBuffer fb = stack.mallocFloat(count);
+            fb.put(values, 0, count);
+            fb.flip();
+            glUniform1fv(loc, fb);
+        }
+    }
+
     public void cleanup() {
         glUseProgram(0);
+        removeUniformCacheForProgram(programId);
         glDeleteProgram(programId);
     }
 

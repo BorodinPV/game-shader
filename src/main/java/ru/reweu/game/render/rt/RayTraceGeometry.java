@@ -31,7 +31,7 @@ public final class RayTraceGeometry {
         List<GltfScene> gltfScenes,
         List<Matrix4f> gltfRoots,
         List<Mesh[]> propMeshes,
-        Matrix4f propModel,
+        List<Vector3f> propPositions,
         int maxTriangles,
         FloatBuffer dst
     ) {
@@ -55,9 +55,23 @@ public final class RayTraceGeometry {
                 }
             }
         } else if (propMeshes != null && !propMeshes.isEmpty()) {
-            n += appendMeshGroup(propMeshes, propModel, PROP_ALBEDO, maxTriangles - n, dst);
+            List<Vector3f> pp = propPositions != null ? propPositions : List.of();
+            for (int i = 0; i < propMeshes.size() && i < pp.size(); i++) {
+                Mesh[] group = propMeshes.get(i);
+                Matrix4f pm = propGroupModel(pp.get(i), group);
+                n += appendMeshGroup(java.util.Collections.singletonList(group), pm, PROP_ALBEDO, maxTriangles - n, dst);
+                if (n >= maxTriangles) {
+                    return n;
+                }
+            }
         }
         return n;
+    }
+
+    /** Модель для одной группы пропов (мир + масштаб из первого меша). */
+    public static Matrix4f propGroupModel(Vector3f worldPosition, Mesh[] group) {
+        float sc = group != null && group.length > 0 ? group[0].getScale() : 1f;
+        return new Matrix4f().translate(worldPosition).scale(sc);
     }
 
     private static int appendMeshGroup(

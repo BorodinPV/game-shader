@@ -8,6 +8,7 @@ import static org.lwjgl.opengl.GL15.glDeleteBuffers;
 import static org.lwjgl.opengl.GL15.glGenBuffers;
 
 import de.javagl.jgltf.model.GltfModel;
+import de.javagl.jgltf.model.MaterialModel;
 import de.javagl.jgltf.model.MeshModel;
 import de.javagl.jgltf.model.MeshPrimitiveModel;
 import de.javagl.jgltf.model.NodeModel;
@@ -19,7 +20,10 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import ru.reweu.game.gltf.GltfPrimitiveBuilder.GltfMeshDraw;
@@ -30,31 +34,51 @@ import ru.reweu.game.render.ShaderProgram;
  */
 public final class GltfScene {
 
-    private static final Method ANIMATION_PERFORM_STEP;
+    /**
+     * jgltf 2.0.4 exposes stepping only via package-private {@code performStep(long)}.
+     * Resolved once; if the API changes, animations are skipped instead of crashing the JVM.
+     */
+    private static final Method ANIMATION_PERFORM_STEP = resolveAnimationPerformStep();
 
-    static {
+    private static Method resolveAnimationPerformStep() {
         try {
             Method m = AnimationManager.class.getDeclaredMethod("performStep", long.class);
             m.setAccessible(true);
-            ANIMATION_PERFORM_STEP = m;
+            return m;
         } catch (ReflectiveOperationException e) {
-            throw new ExceptionInInitializerError(e);
+            return null;
         }
     }
 
     private final GltfModel gltfModel;
     private final GltfMaterialExtensionFlags materialExtensionFlags;
+    /** Индекс материала по ссылке (jgltf), без {@code List#indexOf} при сортировке примитивов. */
+    private final Map<MaterialModel, Integer> materialIndexByIdentity;
     private final GltfTextureRegistry textures;
     private final List<GltfDrawableInstance> instances = new ArrayList<>();
     private final int jointUbo;
     private final AnimationManager animationManager;
     private boolean cleanedUp;
 
+    private final float[] nodeGlobalArr = new float[16];
+    private final Matrix4f tmpWorld = new Matrix4f();
+    private final Matrix4f tmpModel = new Matrix4f();
+    private final Matrix4f[] instBatchMatrices;
+
     public GltfScene(GltfModel model, GltfMaterialExtensionFlags materialExtensionFlags) {
+        this.instBatchMatrices = new Matrix4f[GltfPbrRenderer.MAX_GLTF_INSTANCED_BATCH];
+        for (int i = 0; i < instBatchMatrices.length; i++) {
+            instBatchMatrices[i] = new Matrix4f();
+        }
         this.gltfModel = model;
         this.materialExtensionFlags = materialExtensionFlags != null
             ? materialExtensionFlags
             : GltfMaterialExtensionFlags.empty();
+        List<MaterialModel> matList = model.getMaterialModels();
+        this.materialIndexByIdentity = new IdentityHashMap<>(Math.max(16, matList.size() * 2));
+        for (int i = 0; i < matList.size(); i++) {
+            this.materialIndexByIdentity.put(matList.get(i), i);
+        }
         this.textures = new GltfTextureRegistry(model);
         this.jointUbo = glGenBuffers();
         glBindBuffer(GL_UNIFORM_BUFFER, jointUbo);
@@ -66,6 +90,12 @@ public final class GltfScene {
                 collectPrimitives(root);
             }
         }
+
+        instances.sort(
+            Comparator
+                .comparingInt((GltfDrawableInstance inst) ->
+                    inst.mesh.materialModelIndex >= 0 ? inst.mesh.materialModelIndex : Integer.MAX_VALUE)
+                .thenComparingInt(inst -> System.identityHashCode(inst.mesh)));
 
         this.animationManager = GltfAnimations.createAnimationManager(AnimationManager.AnimationPolicy.LOOP);
         this.animationManager.addAnimations(GltfAnimations.createModelAnimations(model.getAnimationModels()));
@@ -123,7 +153,10 @@ public final class GltfScene {
     private void collectPrimitives(NodeModel node) {
         for (MeshModel mesh : node.getMeshModels()) {
             for (MeshPrimitiveModel prim : mesh.getMeshPrimitiveModels()) {
-                GltfMeshDraw draw = GltfPrimitiveBuilder.build(prim);
+                MaterialModel pmat = prim.getMaterialModel();
+                Integer mix = pmat != null ? materialIndexByIdentity.get(pmat) : null;
+                int matIx = mix != null ? mix : -1;
+                GltfMeshDraw draw = GltfPrimitiveBuilder.build(prim, matIx);
                 instances.add(new GltfDrawableInstance(draw, node, mesh));
             }
         }
@@ -134,30 +167,85 @@ public final class GltfScene {
 
     /** Карта теней: отрисовка глубины glTF. */
     public void renderShadowDepth(ShaderProgram depthShader, Matrix4f rootModel, Matrix4f lightSpaceMatrix) {
-        float[] ng = new float[16];
-        for (GltfDrawableInstance inst : instances) {
-            inst.node.computeGlobalTransform(ng);
-            Matrix4f world = new Matrix4f().set(ng);
-            Matrix4f modelMat = new Matrix4f(rootModel).mul(world);
-            GltfPbrRenderer.drawShadowDepth(
-                depthShader,
-                jointUbo,
-                inst.mesh,
-                inst.node,
-                inst.meshModel,
-                modelMat,
-                lightSpaceMatrix,
-                null
-            );
+        int i = 0;
+        int n = instances.size();
+        while (i < n) {
+            GltfDrawableInstance inst = instances.get(i);
+            if (!canBatchInstancing(inst)) {
+                drawOneShadow(depthShader, rootModel, lightSpaceMatrix, inst);
+                i++;
+                continue;
+            }
+            GltfMeshDraw mesh0 = inst.mesh;
+            int j = i + 1;
+            while (j < n) {
+                GltfDrawableInstance next = instances.get(j);
+                if (next.mesh != mesh0 || !canBatchInstancing(next)) {
+                    break;
+                }
+                if (j - i >= GltfPbrRenderer.MAX_GLTF_INSTANCED_BATCH) {
+                    break;
+                }
+                j++;
+            }
+            int batchLen = j - i;
+            if (batchLen < 2) {
+                drawOneShadow(depthShader, rootModel, lightSpaceMatrix, inst);
+                i++;
+            } else {
+                for (int k = 0; k < batchLen; k++) {
+                    GltfDrawableInstance di = instances.get(i + k);
+                    di.node.computeGlobalTransform(nodeGlobalArr);
+                    tmpWorld.set(nodeGlobalArr);
+                    instBatchMatrices[k].set(rootModel).mul(tmpWorld);
+                }
+                GltfDrawableInstance first = instances.get(i);
+                GltfPbrRenderer.drawShadowDepthInstanced(
+                    depthShader,
+                    jointUbo,
+                    first.mesh,
+                    first.node,
+                    first.meshModel,
+                    instBatchMatrices,
+                    batchLen,
+                    lightSpaceMatrix
+                );
+                i = j;
+            }
         }
     }
 
+    private void drawOneShadow(
+        ShaderProgram depthShader,
+        Matrix4f rootModel,
+        Matrix4f lightSpaceMatrix,
+        GltfDrawableInstance inst
+    ) {
+        inst.node.computeGlobalTransform(nodeGlobalArr);
+        tmpWorld.set(nodeGlobalArr);
+        tmpModel.set(rootModel).mul(tmpWorld);
+        GltfPbrRenderer.drawShadowDepth(
+            depthShader,
+            jointUbo,
+            inst.mesh,
+            inst.node,
+            inst.meshModel,
+            tmpModel,
+            lightSpaceMatrix,
+            null
+        );
+    }
+
     public void updateAnimation(float deltaTimeSeconds) {
+        Method step = ANIMATION_PERFORM_STEP;
+        if (step == null) {
+            return;
+        }
         long deltaNs = (long) (deltaTimeSeconds * 1_000_000_000L);
         try {
-            ANIMATION_PERFORM_STEP.invoke(animationManager, deltaNs);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
+            step.invoke(animationManager, deltaNs);
+        } catch (ReflectiveOperationException ignored) {
+            /* Broken jgltf build or security manager: freeze pose rather than abort the frame. */
         }
     }
 
@@ -174,33 +262,104 @@ public final class GltfScene {
         Matrix4f projection,
         boolean opaquePassOnly
     ) {
-        float[] ng = new float[16];
-        for (GltfDrawableInstance inst : instances) {
-            boolean opaquePass = GltfMaterialPasses.drawnInOpaquePass(inst.mesh.material);
-            if (opaquePassOnly && !opaquePass) {
+        int i = 0;
+        int n = instances.size();
+        while (i < n) {
+            GltfDrawableInstance inst = instances.get(i);
+            if (!instancePassMatches(opaquePassOnly, inst)) {
+                i++;
                 continue;
             }
-            if (!opaquePassOnly && opaquePass) {
+            if (!canBatchInstancing(inst)) {
+                drawOneForward(shader, rootModel, view, projection, inst);
+                i++;
                 continue;
             }
-            inst.node.computeGlobalTransform(ng);
-            Matrix4f world = new Matrix4f().set(ng);
-            Matrix4f modelMat = new Matrix4f(rootModel).mul(world);
-            GltfPbrRenderer.draw(
-                shader,
-                textures,
-                jointUbo,
-                inst.mesh,
-                inst.node,
-                inst.meshModel,
-                modelMat,
-                view,
-                projection,
-                null,
-                gltfModel,
-                materialExtensionFlags
-            );
+            GltfMeshDraw mesh0 = inst.mesh;
+            int j = i + 1;
+            while (j < n) {
+                GltfDrawableInstance next = instances.get(j);
+                if (!instancePassMatches(opaquePassOnly, next)) {
+                    break;
+                }
+                if (next.mesh != mesh0 || !canBatchInstancing(next)) {
+                    break;
+                }
+                if (j - i >= GltfPbrRenderer.MAX_GLTF_INSTANCED_BATCH) {
+                    break;
+                }
+                j++;
+            }
+            int batchLen = j - i;
+            if (batchLen < 2) {
+                drawOneForward(shader, rootModel, view, projection, inst);
+                i++;
+            } else {
+                for (int k = 0; k < batchLen; k++) {
+                    GltfDrawableInstance di = instances.get(i + k);
+                    di.node.computeGlobalTransform(nodeGlobalArr);
+                    tmpWorld.set(nodeGlobalArr);
+                    instBatchMatrices[k].set(rootModel).mul(tmpWorld);
+                }
+                GltfDrawableInstance first = instances.get(i);
+                GltfPbrRenderer.drawInstancedForward(
+                    shader,
+                    textures,
+                    jointUbo,
+                    first.mesh,
+                    first.node,
+                    first.meshModel,
+                    instBatchMatrices,
+                    batchLen,
+                    view,
+                    projection,
+                    gltfModel,
+                    materialExtensionFlags
+                );
+                i = j;
+            }
         }
+    }
+
+    private static boolean instancePassMatches(boolean opaquePassOnly, GltfDrawableInstance inst) {
+        boolean opaquePass = GltfMaterialPasses.drawnInOpaquePass(inst.mesh.material);
+        if (opaquePassOnly && !opaquePass) {
+            return false;
+        }
+        if (!opaquePassOnly && opaquePass) {
+            return false;
+        }
+        return true;
+    }
+
+    private static boolean canBatchInstancing(GltfDrawableInstance inst) {
+        return inst.mesh.morphGpuCount == 0 && inst.node.getSkinModel() == null;
+    }
+
+    private void drawOneForward(
+        ShaderProgram shader,
+        Matrix4f rootModel,
+        Matrix4f view,
+        Matrix4f projection,
+        GltfDrawableInstance inst
+    ) {
+        inst.node.computeGlobalTransform(nodeGlobalArr);
+        tmpWorld.set(nodeGlobalArr);
+        tmpModel.set(rootModel).mul(tmpWorld);
+        GltfPbrRenderer.draw(
+            shader,
+            textures,
+            jointUbo,
+            inst.mesh,
+            inst.node,
+            inst.meshModel,
+            tmpModel,
+            view,
+            projection,
+            null,
+            gltfModel,
+            materialExtensionFlags
+        );
     }
 
     public void cleanup() {

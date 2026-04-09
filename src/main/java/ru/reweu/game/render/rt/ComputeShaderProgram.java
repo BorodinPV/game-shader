@@ -106,6 +106,7 @@ public final class ComputeShaderProgram {
     }
 
     public void cleanup() {
+        ru.reweu.game.render.ShaderProgram.removeUniformCacheForProgram(programId);
         glDeleteProgram(programId);
     }
 }

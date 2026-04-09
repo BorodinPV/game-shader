@@ -17,7 +17,6 @@ import static org.lwjgl.opengl.GL30.glDrawElements;
 import static org.lwjgl.opengl.GL30.glEnableVertexAttribArray;
 import static org.lwjgl.opengl.GL30.glGenBuffers;
 import static org.lwjgl.opengl.GL30.glGenVertexArrays;
-import static org.lwjgl.opengl.GL30.glGetUniformLocation;
 import static org.lwjgl.opengl.GL30.glUniform1i;
 import static org.lwjgl.opengl.GL30.glUniform3f;
 import static org.lwjgl.opengl.GL13.GL_TEXTURE0;
@@ -26,6 +25,8 @@ import static org.lwjgl.opengl.GL13.GL_TEXTURE2;
 import static org.lwjgl.opengl.GL13.GL_TEXTURE3;
 import static org.lwjgl.opengl.GL13.glActiveTexture;
 import static org.lwjgl.opengl.GL30.glVertexAttribPointer;
+
+import ru.reweu.game.render.ShaderProgram;
 import static org.lwjgl.system.MemoryUtil.memAllocFloat;
 import static org.lwjgl.system.MemoryUtil.memAllocInt;
 import static org.lwjgl.system.MemoryUtil.memFree;
@@ -37,9 +38,6 @@ import java.util.Locale;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 import ru.reweu.game.GameConfig;
-import ru.reweu.game.render.ShaderProgram;
-
-import static org.lwjgl.opengl.GL30.*;
 
 public class Mesh {
     private final int vaoId;
@@ -234,21 +232,21 @@ public class Mesh {
     /** @param opaqueGeometryPass при {@code true} в шейдере альфа принудительно 1 — непрозрачная геометрия и буфер глубины. */
     public void render(boolean opaqueGeometryPass) {
         int shaderProgram = ShaderProgram.getActiveProgramId();
-        int opaqueGeomLoc = glGetUniformLocation(shaderProgram, "opaqueGeometryPass");
+        int opaqueGeomLoc = ShaderProgram.uniformLocation(shaderProgram, "opaqueGeometryPass");
         if (opaqueGeomLoc != -1) {
             glUniform1i(opaqueGeomLoc, opaqueGeometryPass ? 1 : 0);
         }
-        int textureScaleLocation = glGetUniformLocation(shaderProgram, "textureScale");
+        int textureScaleLocation = ShaderProgram.uniformLocation(shaderProgram, "textureScale");
         if (textureScaleLocation != -1) {
             float ts = usePlanarUv ? GameConfig.LANDSCAPE_TEXTURE_SCALE : 1.0f;
             glUniform1f(textureScaleLocation, ts);
         }
-        int useDiffuseTextureLocation = glGetUniformLocation(shaderProgram, "useDiffuseTexture");
-        int useSpecularTextureLocation = glGetUniformLocation(shaderProgram, "useSpecularTexture");
-        int useNormalTextureLocation = glGetUniformLocation(shaderProgram, "useNormalTexture");
-        int useAlphaTextureLocation = glGetUniformLocation(shaderProgram, "useAlphaTexture");
-        int materialColorLocation = glGetUniformLocation(shaderProgram, "diffuseColor");
-        int materialAlphaLocation = glGetUniformLocation(shaderProgram, "materialAlpha");
+        int useDiffuseTextureLocation = ShaderProgram.uniformLocation(shaderProgram, "useDiffuseTexture");
+        int useSpecularTextureLocation = ShaderProgram.uniformLocation(shaderProgram, "useSpecularTexture");
+        int useNormalTextureLocation = ShaderProgram.uniformLocation(shaderProgram, "useNormalTexture");
+        int useAlphaTextureLocation = ShaderProgram.uniformLocation(shaderProgram, "useAlphaTexture");
+        int materialColorLocation = ShaderProgram.uniformLocation(shaderProgram, "diffuseColor");
+        int materialAlphaLocation = ShaderProgram.uniformLocation(shaderProgram, "materialAlpha");
 
         applyMaterialAlpha(materialAlphaLocation);
         bindDiffuseForActiveShader(shaderProgram, useDiffuseTextureLocation, materialColorLocation);
@@ -283,11 +281,11 @@ public class Mesh {
         if (diffuseTexture != null) {
             glActiveTexture(GL_TEXTURE0);
             diffuseTexture.bind();
-            int texture1Loc = glGetUniformLocation(shaderProgram, "texture1");
+            int texture1Loc = ShaderProgram.uniformLocation(shaderProgram, "texture1");
             if (texture1Loc != -1) {
                 glUniform1i(texture1Loc, 0);
             }
-            int diffuseSamplerLoc = glGetUniformLocation(shaderProgram, "diffuseTexture");
+            int diffuseSamplerLoc = ShaderProgram.uniformLocation(shaderProgram, "diffuseTexture");
             if (diffuseSamplerLoc != -1) {
                 glUniform1i(diffuseSamplerLoc, 0);
             }
@@ -323,7 +321,7 @@ public class Mesh {
         int useNormalTextureLocation,
         int useAlphaTextureLocation
     ) {
-        int mrLoc = glGetUniformLocation(shaderProgram, "textureMetallicRoughness");
+        int mrLoc = ShaderProgram.uniformLocation(shaderProgram, "textureMetallicRoughness");
         if (useSpecularTextureLocation != -1) {
             if (specularTexture != null) {
                 glActiveTexture(GL_TEXTURE1);
@@ -336,7 +334,7 @@ public class Mesh {
                 glUniform1i(useSpecularTextureLocation, 0);
             }
         }
-        int nLoc = glGetUniformLocation(shaderProgram, "textureNormal");
+        int nLoc = ShaderProgram.uniformLocation(shaderProgram, "textureNormal");
         if (useNormalTextureLocation != -1) {
             if (normalTexture != null) {
                 glActiveTexture(GL_TEXTURE2);
@@ -349,7 +347,7 @@ public class Mesh {
                 glUniform1i(useNormalTextureLocation, 0);
             }
         }
-        int aLoc = glGetUniformLocation(shaderProgram, "textureOpacity");
+        int aLoc = ShaderProgram.uniformLocation(shaderProgram, "textureOpacity");
         if (useAlphaTextureLocation != -1) {
             if (alphaTexture != null) {
                 glActiveTexture(GL_TEXTURE3);
@@ -366,11 +364,11 @@ public class Mesh {
     }
 
     private void setPlanarUvUniforms(int shaderProgram) {
-        int planarLoc = glGetUniformLocation(shaderProgram, "usePlanarUv");
+        int planarLoc = ShaderProgram.uniformLocation(shaderProgram, "usePlanarUv");
         if (planarLoc != -1) {
             glUniform1i(planarLoc, usePlanarUv ? 1 : 0);
         }
-        int uvBoundsLoc = glGetUniformLocation(shaderProgram, "uvBounds");
+        int uvBoundsLoc = ShaderProgram.uniformLocation(shaderProgram, "uvBounds");
         if (uvBoundsLoc != -1) {
             glUniform4f(uvBoundsLoc, planarMinX, planarMinZ, planarRangeX, planarRangeZ);
         }
@@ -467,5 +465,29 @@ public class Mesh {
 
     public boolean hasNonDefaultVertexColor() {
         return nonDefaultVertexColor;
+    }
+
+    /**
+     * Ключ для сортировки draw по материалу (текстуры и флаги), чтобы реже переключать биндинги.
+     */
+    public long materialStateKey() {
+        long h = 17;
+        h = 31 * h + ptr(diffuseTexture);
+        h = 31 * h + ptr(ambientTexture);
+        h = 31 * h + ptr(specularTexture);
+        h = 31 * h + ptr(normalTexture);
+        h = 31 * h + ptr(alphaTexture);
+        h = 31 * h + ptr(specularHighlightTexture);
+        h = 31 * h + Float.floatToIntBits(materialAlpha);
+        h = 31 * h + (usePlanarUv ? 1 : 0);
+        h = 31 * h + Float.floatToIntBits(color.x);
+        h = 31 * h + Float.floatToIntBits(color.y);
+        h = 31 * h + Float.floatToIntBits(color.z);
+        h = 31 * h + (transparentOverlayPass ? 1 : 0);
+        return h;
+    }
+
+    private static int ptr(Texture t) {
+        return t == null ? 0 : System.identityHashCode(t);
     }
 }
