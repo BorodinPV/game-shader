@@ -113,12 +113,6 @@ public class Game3d {
         SkyRenderer.init();
         ShaderProgram.addCleanupHook(GltfPbrRenderer::removeUniformCacheForProgram);
         Mesh.setLandscapeTextureScale(GameConfig.LANDSCAPE_TEXTURE_SCALE);
-        GltfPbrRenderer.setConfig(new GltfRenderConfig(
-            GameConfig.GLTF_EXTENSION_FALLBACK_MIN_ROUGHNESS,
-            GameConfig.GLTF_DEBUG_DISABLE_NORMAL_MAP,
-            GameConfig.effectiveGltfDebugVisualizeMode()
-        ));
-
         glEnable(GL_MULTISAMPLE);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
@@ -134,7 +128,12 @@ public class Game3d {
         pauseMenu = new PauseMenu(window);
         pauseMenu.init();
 
-        assets = GameSceneAssets.load();
+        var gltfConfig = new GltfRenderConfig(
+            GameConfig.GLTF_EXTENSION_FALLBACK_MIN_ROUGHNESS,
+            GameConfig.GLTF_DEBUG_DISABLE_NORMAL_MAP,
+            GameConfig.effectiveGltfDebugVisualizeMode()
+        );
+        assets = GameSceneAssets.load(gltfConfig);
         pipeline = GameRenderPipeline.create(assets);
 
         camera = new Camera(new Vector3f(0.0f, 1.0f, 3.0f), new Vector3f(0.0f, 1.0f, 0.0f), 90.0f, 0.0f);
