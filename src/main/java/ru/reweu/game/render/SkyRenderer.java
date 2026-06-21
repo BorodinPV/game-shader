@@ -65,23 +65,41 @@ public final class SkyRenderer {
             glActiveTexture(GL_TEXTURE0 + unit);
             glBindTexture(GL_TEXTURE_CUBE_MAP, environmentIbl.getPrefilterMap());
             sky.setUniform("u_envSky", unit);
-            glUniform1f(glGetUniformLocation(pid, "u_iblIntensity"), lit.iblIntensity());
+            sky.setUniform("u_iblIntensity", lit.iblIntensity());
         }
 
         Vector3f sd = lit.sunDirection();
-        glUniform3f(glGetUniformLocation(pid, "sunDirection"), sd.x, sd.y, sd.z);
+        int sunDirLoc = ShaderProgram.uniformLocation(pid, "sunDirection");
+        if (sunDirLoc != -1) {
+            glUniform3f(sunDirLoc, sd.x, sd.y, sd.z);
+        }
         Vector3f sc = lit.sunColor();
-        glUniform3f(glGetUniformLocation(pid, "sunColor"), sc.x, sc.y, sc.z);
-        int sunIntLoc = glGetUniformLocation(pid, "sunIntensity");
+        int sunColLoc = ShaderProgram.uniformLocation(pid, "sunColor");
+        if (sunColLoc != -1) {
+            glUniform3f(sunColLoc, sc.x, sc.y, sc.z);
+        }
+        int sunIntLoc = ShaderProgram.uniformLocation(pid, "sunIntensity");
         if (sunIntLoc != -1) {
             glUniform1f(sunIntLoc, lit.sunIntensity());
         }
         Vector3f sk = lit.skyAmbientColor();
-        glUniform3f(glGetUniformLocation(pid, "skyAmbientColor"), sk.x, sk.y, sk.z);
+        int skyAmbLoc = ShaderProgram.uniformLocation(pid, "skyAmbientColor");
+        if (skyAmbLoc != -1) {
+            glUniform3f(skyAmbLoc, sk.x, sk.y, sk.z);
+        }
         Vector3f gr = lit.groundAmbientColor();
-        glUniform3f(glGetUniformLocation(pid, "groundAmbientColor"), gr.x, gr.y, gr.z);
-        glUniform1f(glGetUniformLocation(pid, "exposure"), lit.exposure());
-        glUniform1f(glGetUniformLocation(pid, "sunDiscScale"), lit.sunDiscScale());
+        int groundAmbLoc = ShaderProgram.uniformLocation(pid, "groundAmbientColor");
+        if (groundAmbLoc != -1) {
+            glUniform3f(groundAmbLoc, gr.x, gr.y, gr.z);
+        }
+        int exposureLoc = ShaderProgram.uniformLocation(pid, "exposure");
+        if (exposureLoc != -1) {
+            glUniform1f(exposureLoc, lit.exposure());
+        }
+        int sunDiscLoc = ShaderProgram.uniformLocation(pid, "sunDiscScale");
+        if (sunDiscLoc != -1) {
+            glUniform1f(sunDiscLoc, lit.sunDiscScale());
+        }
 
         boolean cullWasOn = glIsEnabled(GL_CULL_FACE);
         glDisable(GL_CULL_FACE);

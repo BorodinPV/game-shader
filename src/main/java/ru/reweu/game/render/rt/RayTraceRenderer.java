@@ -187,18 +187,16 @@ public final class RayTraceRenderer {
         int pid = present.getProgramId();
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, rtTexture);
-        int uScene = glGetUniformLocation(pid, "uScene");
+        int uScene = ShaderProgram.uniformLocation(pid, "uScene");
         if (uScene != -1) {
             glUniform1i(uScene, 0);
         }
-        int uExp = glGetUniformLocation(pid, "exposure");
+        int uExp = ShaderProgram.uniformLocation(pid, "exposure");
         if (uExp != -1) {
             glUniform1f(uExp, lit.exposure());
         }
         glBindVertexArray(emptyVao);
         glDrawArrays(GL_TRIANGLES, 0, 3);
-        glBindVertexArray(0);
-        glBindTexture(GL_TEXTURE_2D, 0);
 
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
