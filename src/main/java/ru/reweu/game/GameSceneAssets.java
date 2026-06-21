@@ -27,7 +27,7 @@ public final class GameSceneAssets implements AutoCloseable {
     public final List<GltfScene> gltfScenes = new ArrayList<>();
     public final List<Vector3f> gltfWorldPositions = new ArrayList<>();
     public final List<Float> gltfScales = new ArrayList<>();
-    public final TerrainSurface terrain;
+    public TerrainSurface terrain;
     public ShaderProgram gltfShaderProgram;
 
     private GameSceneAssets(TerrainSurface terrain) {

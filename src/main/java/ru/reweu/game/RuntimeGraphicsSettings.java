@@ -105,7 +105,7 @@ public final class RuntimeGraphicsSettings {
         hemisphereAmbientEnabled = true;
         drawLandscape = GameConfig.DRAW_LANDSCAPE;
         drawGltfCars = GameConfig.USE_GLTF_NATIVE_LOADER;
-        drawProps = !GameConfig.USE_GLTF_NATIVE_LOADER;
+        drawProps = true;
         drawSky = true;
         showFpsOverlay = true;
         rainEnabled = false;
