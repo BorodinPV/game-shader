@@ -19,6 +19,9 @@ public final class GltfCarInstancesRenderer {
     private final int instanceCount;
     private final Matrix4f tmpGltfRoot = new Matrix4f();
 
+    // Optimization: track if animations were already updated this frame
+    private boolean animationsUpdatedThisFrame = false;
+
     public GltfCarInstancesRenderer(
         List<GltfScene> gltfScenes,
         List<Vector3f> gltfWorldPositions,
@@ -35,6 +38,11 @@ public final class GltfCarInstancesRenderer {
 
     public boolean hasInstances() {
         return !gltfScenes.isEmpty();
+    }
+
+    // Reset animation update flag for next frame
+    public void resetFrame() {
+        animationsUpdatedThisFrame = false;
     }
 
     public void updateAnimations(float deltaTime) {
@@ -60,7 +68,11 @@ public final class GltfCarInstancesRenderer {
         if (gltfShaderProgram == null || gltfScenes.isEmpty()) {
             return;
         }
-        updateAnimations(deltaTime);
+        // Only update animations once per frame
+        if (!animationsUpdatedThisFrame) {
+            updateAnimations(deltaTime);
+            animationsUpdatedThisFrame = true;
+        }
         frame.prepareFrameFor(lit, gltfShaderProgram, view, projection, gltfShadowSample);
         for (int gi = 0; gi < instanceCount; gi++) {
             GltfScene scene = gltfScenes.get(gi);

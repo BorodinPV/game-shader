@@ -41,6 +41,10 @@ public final class SceneRenderer {
 
     private final Matrix4f tmpLandscapeModel = new Matrix4f();
 
+    // Optimization: cache viewport size to avoid glViewport() every frame
+    private int cachedViewportW = -1;
+    private int cachedViewportH = -1;
+
     public SceneRenderer(
         List<Mesh[]> landscapeMeshes,
         List<Mesh[]> propMeshes,
@@ -96,6 +100,12 @@ public final class SceneRenderer {
         int framebufferHeight
     ) {
         RuntimeGraphicsSettings rs = RuntimeGraphicsSettings.get();
+        
+        // Reset per-frame state
+        if (gltfCars != null) {
+            gltfCars.resetFrame();
+        }
+        
         if (rayTrace != null) {
             rayTrace.render(lit, view, projection, cameraWorldPosition, framebufferWidth, framebufferHeight);
             return;

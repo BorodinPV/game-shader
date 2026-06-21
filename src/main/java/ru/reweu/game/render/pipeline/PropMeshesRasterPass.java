@@ -27,6 +27,10 @@ public final class PropMeshesRasterPass {
     private final List<Vector3f> propWorldPositions;
     private final Matrix4f tmpPropModel = new Matrix4f();
 
+    // Optimization: reuse lists to avoid allocations per frame
+    private final List<Mesh> overlayMeshes = new ArrayList<>();
+    private final List<Mesh> solidMeshes = new ArrayList<>();
+
     public PropMeshesRasterPass(List<Mesh[]> propMeshes, List<Vector3f> propWorldPositions) {
         this.propMeshes = propMeshes;
         this.propWorldPositions = propWorldPositions;
@@ -59,28 +63,31 @@ public final class PropMeshesRasterPass {
             float scale = meshGroup[0].getScale();
             tmpPropModel.identity().translate(propWorldPositions.get(pi)).scale(scale);
 
-            List<Mesh> overlay = new ArrayList<>();
-            List<Mesh> solid = new ArrayList<>();
+            // Reuse lists instead of creating new ArrayList
+            overlayMeshes.clear();
+            solidMeshes.clear();
             for (Mesh m : meshGroup) {
                 if (m.isTransparentOverlayPass()) {
-                    overlay.add(m);
+                    overlayMeshes.add(m);
                 } else {
-                    solid.add(m);
+                    solidMeshes.add(m);
                 }
             }
-            Mesh[] solidArr = solid.toArray(new Mesh[0]);
-            if (solidArr.length > 0) {
+            
+            if (!solidMeshes.isEmpty()) {
+                Mesh[] solidArr = solidMeshes.toArray(new Mesh[0]);
                 sortMeshesByMaterialState(solidArr);
                 glDisable(GL_BLEND);
                 glDepthMask(true);
                 renderWorldMeshes(worldShader, solidArr, tmpPropModel, view, projection, true);
             }
-            if (!overlay.isEmpty()) {
+            
+            if (!overlayMeshes.isEmpty()) {
                 glEnable(GL_BLEND);
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                 glDepthMask(false);
                 renderWorldMeshesTransparentSorted(
-                    worldShader, overlay, tmpPropModel, view, projection, cameraWorldPosition);
+                    worldShader, overlayMeshes, tmpPropModel, view, projection, cameraWorldPosition);
                 glDepthMask(true);
             }
             glDisable(GL_BLEND);
