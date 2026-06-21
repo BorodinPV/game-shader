@@ -73,6 +73,8 @@ public final class RayTraceRenderer {
     private final int emptyVao;
     private int rtW;
     private int rtH;
+    private static final Matrix4f tmpInvP = new Matrix4f();
+    private static final Matrix4f tmpInvV = new Matrix4f();
 
     public RayTraceRenderer(
         List<Mesh[]> landscape,
@@ -156,13 +158,13 @@ public final class RayTraceRenderer {
         int ih = Math.max(1, fbH / Math.max(1, GameConfig.RAY_TRACE_INTERNAL_SCALE));
         ensureRtTextureSize(iw, ih);
 
-        Matrix4f invP = new Matrix4f(projection).invert();
-        Matrix4f invV = new Matrix4f(view).invert();
+        tmpInvP.set(projection).invert();
+        tmpInvV.set(view).invert();
 
         compute.use();
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo);
-        compute.setUniform("invProjection", invP);
-        compute.setUniform("invView", invV);
+        compute.setUniform("invProjection", tmpInvP);
+        compute.setUniform("invView", tmpInvV);
         compute.setUniform("cameraPosition", cameraPos);
         compute.setUniform("sunDirection", lit.sunDirection());
         compute.setUniform("sunColor", lit.sunColor());

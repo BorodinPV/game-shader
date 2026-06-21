@@ -30,6 +30,8 @@ import ru.reweu.game.render.ibl.EnvironmentIbl;
 public final class SkyRenderer {
 
     private static int emptyVao;
+    private static final Matrix4f tmpInvProj = new Matrix4f();
+    private static final Matrix4f tmpInvView = new Matrix4f();
 
     private SkyRenderer() {
     }
@@ -48,13 +50,13 @@ public final class SkyRenderer {
         EnvironmentIbl environmentIbl,
         LightingFrame lit
     ) {
-        Matrix4f invProj = new Matrix4f(projection).invert();
-        Matrix4f invView = new Matrix4f(view).invert();
+        tmpInvProj.set(projection).invert();
+        tmpInvView.set(view).invert();
 
         int pid = sky.getProgramId();
         sky.use();
-        sky.setUniform("invProjection", invProj);
-        sky.setUniform("invView", invView);
+        sky.setUniform("invProjection", tmpInvProj);
+        sky.setUniform("invView", tmpInvView);
 
         boolean useEnvSky = GameConfig.SKY_USE_IBL_ENVIRONMENT && environmentIbl != null;
         sky.setUniform("u_useEnvSky", useEnvSky ? 1 : 0);
@@ -86,7 +88,6 @@ public final class SkyRenderer {
         glDisable(GL_DEPTH_TEST);
         glBindVertexArray(emptyVao);
         glDrawArrays(GL_TRIANGLES, 0, 3);
-        glBindVertexArray(0);
         glEnable(GL_DEPTH_TEST);
         if (cullWasOn) {
             glEnable(GL_CULL_FACE);
