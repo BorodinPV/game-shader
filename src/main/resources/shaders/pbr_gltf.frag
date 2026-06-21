@@ -92,6 +92,10 @@ uniform int u_shadowPcfUseShadingNormal;
 /** Минимум sh для прямого солнца после PCF (подсветка тени). GAME_SHADOW_RECEIVE_FLOOR */
 uniform float u_shadowReceiveFloor;
 
+uniform int u_fogEnabled;
+uniform float u_fogDensity;
+uniform vec3 u_fogColor;
+
 /** KHR_texture_transform для normalTexture (см. GltfPbrRenderer). */
 uniform int u_enableNormalTexTransform;
 uniform vec2 u_normalTexTransformOffset;
@@ -274,6 +278,17 @@ void main()
     float ambScale = ambientHemiScale + ambientHemiHemi * hemi;
     vec3 sceneDiffuseAmbient = albedo * ambientMix * ambScale * 0.45;
     vec3 color = diffuseIbl + Lo + fillLight + specFill + emissive + specIbl + sceneDiffuseAmbient;
+
+    // Fog: height-based exponential (Silent Hill style)
+    if (u_fogEnabled != 0) {
+        float dy = max(vWorldPos.y - cameraPosition.y, 0.0);
+        float dh = length(vWorldPos.xz - cameraPosition.xz);
+        float fogAmount = dy * 0.03 + dh * u_fogDensity;
+        float fogFactor = 1.0 - exp(-fogAmount);
+        fogFactor = clamp(fogFactor, 0.0, 0.97);
+        color = mix(color, u_fogColor, fogFactor);
+    }
+
     vec3 mapped = tonemapDisplay(color, exposure);
     FragColor = vec4(mapped, alpha);
 }

@@ -4,11 +4,23 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4f6864b3-ecff-4661-a787-27435afc488a" name="Changes" comment="" />
+    <list default="true" id="4f6864b3-ecff-4661-a787-27435afc488a" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/Game3d.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/Game3d.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/RuntimeGraphicsSettings.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/RuntimeGraphicsSettings.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/RuntimeGraphicsSettingsPersistence.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/RuntimeGraphicsSettingsPersistence.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/gui/PauseMenu.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/gui/PauseMenu.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/render/GameRenderPipeline.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/render/GameRenderPipeline.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/shaders/fragment_shader.glsl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/shaders/fragment_shader.glsl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/shaders/pbr_gltf.frag" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/shaders/pbr_gltf.frag" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="EmbeddingIndexingInfo">
+    <option name="cachedIndexableFilesCount" value="112" />
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -25,29 +37,32 @@
     &quot;accountId&quot;: &quot;72df017e-8503-4c90-8e76-c35a4e24cf04&quot;
   }
 }</component>
+  <component name="MavenRunner">
+    <option name="jreName" value="21" />
+  </component>
   <component name="McpProjectServerCommands">
     <commands />
     <urls />
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.4910408983821564" />
-      <entry key="MS500" value="4.850223367234733" />
-      <entry key="S2" value="10.594825911615562" />
-      <entry key="S5" value="13.40267057850277" />
-      <entry key="S10" value="14.61245811840715" />
-      <entry key="S30" value="15.534739078548487" />
-      <entry key="S60" value="16.738426722756213" />
-      <entry key="M2" value="25.568066263763626" />
-      <entry key="M5" value="86.192045675909" />
-      <entry key="M10" value="196.22187869440486" />
-      <entry key="M15" value="280.0521080629174" />
-      <entry key="M30" value="430.2370400389234" />
-      <entry key="H1" value="559.1945147529246" />
-      <entry key="H2" value="649.3270486072215" />
-      <entry key="H4" value="703.7307746385816" />
-      <entry key="D1" value="755.0122867676122" />
-      <entry key="W1" value="764.414486336527" />
+      <entry key="MS100" value="1.5774085569169225" />
+      <entry key="MS500" value="3.6316310679741015" />
+      <entry key="S2" value="10.352879724817733" />
+      <entry key="S5" value="15.39229532267731" />
+      <entry key="S10" value="18.23087446588913" />
+      <entry key="S30" value="32.98844646023948" />
+      <entry key="S60" value="66.35378741710954" />
+      <entry key="M2" value="132.76812487303226" />
+      <entry key="M5" value="269.7612636371508" />
+      <entry key="M10" value="408.9800134322587" />
+      <entry key="M15" value="516.2672560837001" />
+      <entry key="M30" value="790.2916127804499" />
+      <entry key="H1" value="1245.0931670368695" />
+      <entry key="H2" value="1861.036206396881" />
+      <entry key="H4" value="2454.9417377132913" />
+      <entry key="D1" value="3245.9450669473395" />
+      <entry key="W1" value="3421.3756998134363" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
@@ -69,23 +84,23 @@
       <entry key="W1" value="0.0" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.441526373164473" />
-      <entry key="MS500" value="4.820129812782756" />
-      <entry key="S2" value="10.577874847203022" />
-      <entry key="S5" value="13.393955674297125" />
-      <entry key="S10" value="14.607678196825164" />
-      <entry key="S30" value="15.533038022362533" />
-      <entry key="S60" value="16.737511865859336" />
-      <entry key="M2" value="25.567377700865684" />
-      <entry key="M5" value="86.19111901830169" />
-      <entry key="M10" value="196.22080748359616" />
-      <entry key="M15" value="280.05107991853004" />
-      <entry key="M30" value="430.23623958150574" />
-      <entry key="H1" value="559.1939889780522" />
-      <entry key="H2" value="649.326741217496" />
-      <entry key="H4" value="703.7306074050848" />
-      <entry key="D1" value="755.0122567573987" />
-      <entry key="W1" value="764.4144819932008" />
+      <entry key="MS100" value="1.5335513512095758" />
+      <entry key="MS500" value="3.6108554154961734" />
+      <entry key="S2" value="10.338521683940876" />
+      <entry key="S5" value="15.383871632275216" />
+      <entry key="S10" value="18.225916446935482" />
+      <entry key="S30" value="32.985505727864826" />
+      <entry key="S60" value="66.35085661789154" />
+      <entry key="M2" value="132.76519355378315" />
+      <entry key="M5" value="269.7588553615837" />
+      <entry key="M10" value="408.97816559419533" />
+      <entry key="M15" value="516.2656920590603" />
+      <entry key="M30" value="790.2903970259014" />
+      <entry key="H1" value="1245.0921670214498" />
+      <entry key="H2" value="1861.0354190627118" />
+      <entry key="H4" value="2454.9412001392084" />
+      <entry key="D1" value="3245.9449447664415" />
+      <entry key="W1" value="3421.3756813178375" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -97,42 +112,83 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Maven.game [compile,exec:java].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.game [compile].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.game [deploy].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.game [exec:java].executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
-    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;ml.llm.AcpAgentsConfigurable&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Application.Game3d.executor": "Run",
+    "Maven.game [clean,install].executor": "Run",
+    "Maven.game [compile,exec:java].executor": "Run",
+    "Maven.game [compile].executor": "Run",
+    "Maven.game [deploy].executor": "Run",
+    "Maven.game [exec:java].executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "master",
+    "junie.onboarding.icon.badge.shown": "true",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/pc/IdeaProjects/game-shader/src/main/resources/models/landscape",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "project.structure.last.edited": "Project",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.0",
+    "settings.editor.selected.configurable": "reference.settings.project.maven.runner",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\pc\IdeaProjects\game-shader\src\main\resources\models\landscape" />
+    </key>
+  </component>
   <component name="RunAnythingCache">
     <option name="myCommands">
       <command value="mvn deploy" />
-      <command value="mvn compile" />
       <command value="mvn exec:java" />
+      <command value="mvn clean install" />
+      <command value="mvn compile" />
       <command value="mvn compile exec:java" />
     </option>
+  </component>
+  <component name="RunManager">
+    <configuration name="Game3d" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="ALTERNATIVE_JRE_PATH" value="21" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+      <option name="MAIN_CLASS_NAME" value="ru.reweu.game.Game3d" />
+      <module name="game" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="ru.reweu.game.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="JetRunConfigurationType">
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
+      <option name="filePath" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Application.Game3d" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
@@ -149,12 +205,24 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1782044957187</updated>
-      <workItem from="1782044959191" duration="4581000" />
+      <workItem from="1782044959191" duration="5716000" />
+      <workItem from="1782051610249" duration="12150000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

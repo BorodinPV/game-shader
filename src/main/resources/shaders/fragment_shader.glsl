@@ -38,6 +38,10 @@ uniform float hemiMix;
 uniform float ambientHemiScale;
 uniform float ambientHemiHemi;
 
+uniform int u_fogEnabled;
+uniform float u_fogDensity;
+uniform vec3 u_fogColor;
+
 void main()
 {
     vec3 norm = normalize(Normal);
@@ -107,6 +111,19 @@ void main()
 
     vec3 diffuseContrib = albedo * lighting;
     vec3 linearColor = diffuseContrib + specSun + envSpec;
+
+    // Fog: exponential height fog with quadratic distance for realistic horizon
+    if (u_fogEnabled != 0) {
+        float dist = length(FragPos - cameraPosition);
+        float heightFactor = exp(-max(FragPos.y, 0.0) * u_fogDensity * 1.5);
+        float density = u_fogDensity * (0.1 + 0.9 * heightFactor);
+        float linearTerm = dist * density * 0.5;
+        float quadTerm = dist * dist * density * density * 0.05;
+        float fogFactor = 1.0 - exp(-(linearTerm + quadTerm));
+        fogFactor = clamp(fogFactor, 0.0, 0.98);
+        linearColor = mix(linearColor, u_fogColor, fogFactor);
+    }
+
     vec3 mapped = tonemapDisplay(linearColor, exposure);
     if (opaqueGeometryPass != 0) {
         alpha = 1.0;

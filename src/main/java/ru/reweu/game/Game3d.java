@@ -268,7 +268,8 @@ public class Game3d {
                 GameConfig.effectiveGltfShadowReceiveFloor(),
                 GameConfig.effectiveDiagnosticGltfNoIblOcclusion(),
                 GameConfig.effectiveShadowPcfUseShadingNormal()
-            )
+            ),
+            false
         );
         if (GameConfig.effectiveInstancingDemoEnabled()) {
             instancingDemo = new InstancingDemoRenderer();
@@ -342,6 +343,7 @@ public class Game3d {
             camera.updatePhysics(terrainH, GameConfig.CAMERA_EYE_HEIGHT, deltaTime);
 
             RuntimeGraphicsSettings rs = RuntimeGraphicsSettings.get();
+            worldRenderer.setFogActive(rs.isFogEnabled());
             if (rs.isRainEnabled()) {
                 rainRenderer.update(deltaTime, camera.getPosition());
             }

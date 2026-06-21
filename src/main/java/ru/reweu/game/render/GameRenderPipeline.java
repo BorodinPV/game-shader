@@ -87,7 +87,8 @@ public final class GameRenderPipeline implements AutoCloseable {
                 GameConfig.effectiveGltfShadowReceiveFloor(),
                 GameConfig.effectiveDiagnosticGltfNoIblOcclusion(),
                 GameConfig.effectiveShadowPcfUseShadingNormal()
-            )
+            ),
+            false
         );
 
         InstancingDemoRenderer instancingDemo = null;
