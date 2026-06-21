@@ -4,7 +4,7 @@ import org.joml.Matrix4f;
 import ru.reweu.game.render.ibl.EnvironmentIbl;
 
 /**
- * Доступ к шейдеру мира и ресурсам кадра; per-frame униформы — {@link SceneFrameUniforms}.
+ * Доступ к шейдеру мира и ресурсам кадра; per-frame униформы — {@link LitFrameUniformCache}.
  */
 public final class WorldRenderer implements LitFrameServices {
 
@@ -14,6 +14,8 @@ public final class WorldRenderer implements LitFrameServices {
     private final DirectionalShadowMap shadowMap;
     private final BrdfLutTexture brdfLut;
     private final EnvironmentIbl environmentIbl;
+    private final LitFrameUniformCache worldUniforms;
+    private LitFrameUniformCache gltfUniforms;
 
     public WorldRenderer(
         ShaderProgram worldShaderProgram,
@@ -25,6 +27,7 @@ public final class WorldRenderer implements LitFrameServices {
         this.shadowMap = shadowMap;
         this.brdfLut = brdfLut;
         this.environmentIbl = environmentIbl;
+        this.worldUniforms = LitFrameUniformCache.forWorld(worldShaderProgram);
     }
 
     public ShaderProgram getWorldShaderProgram() {
@@ -61,16 +64,26 @@ public final class WorldRenderer implements LitFrameServices {
         Matrix4f projection,
         boolean shadowSamplingEnabled
     ) {
-        SceneFrameUniforms.bindLitFrame(
+        LitFrameUniformCache cache = uniformCacheFor(shaderProgram);
+        cache.bind(
             lit,
             shaderProgram,
             view,
             projection,
-            worldShaderProgram.getProgramId(),
             shadowMap,
             brdfLut,
             environmentIbl,
             shadowSamplingEnabled
         );
+    }
+
+    private LitFrameUniformCache uniformCacheFor(ShaderProgram shaderProgram) {
+        if (shaderProgram == worldShaderProgram) {
+            return worldUniforms;
+        }
+        if (gltfUniforms == null || gltfUniforms.programId() != shaderProgram.getProgramId()) {
+            gltfUniforms = LitFrameUniformCache.forGltf(shaderProgram, worldShaderProgram.getProgramId());
+        }
+        return gltfUniforms;
     }
 }

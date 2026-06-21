@@ -26,6 +26,7 @@ public final class ShadowDepthPass {
     private final List<Float> gltfScales;
     private final ShaderProgram meshDepthShader;
     private final ShaderProgram gltfDepthShader;
+    private final int gltfInstanceCount;
 
     private final Matrix4f tmpLandscapeModel = new Matrix4f();
     private final Matrix4f tmpPropModel = new Matrix4f();
@@ -49,6 +50,10 @@ public final class ShadowDepthPass {
         this.gltfScales = gltfScales;
         this.meshDepthShader = meshDepthShader;
         this.gltfDepthShader = gltfDepthShader;
+        this.gltfInstanceCount = Math.min(
+            this.gltfScenes.size(),
+            Math.min(this.gltfWorldPositions.size(), this.gltfScales.size())
+        );
     }
 
     /** Сортировка групп мешей перед циклом каскадов (меньше работы, чем на каскад). */
@@ -99,8 +104,7 @@ public final class ShadowDepthPass {
                 }
             }
             if (rs.isDrawGltfCars()) {
-                int nGltf = Math.min(gltfScenes.size(), Math.min(gltfWorldPositions.size(), gltfScales.size()));
-                for (int gi = 0; gi < nGltf; gi++) {
+                for (int gi = 0; gi < gltfInstanceCount; gi++) {
                     GltfScene scene = gltfScenes.get(gi);
                     if (scene == null) {
                         continue;

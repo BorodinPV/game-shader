@@ -43,15 +43,24 @@ import ru.reweu.game.render.ShaderProgram;
  * Отрисовка примитива glTF: скиннинг (UBO), морфинг, материал PBR (§3.9).
  * Per-frame солнце/камера/IBL/тени задаются до вызова {@link #draw} через
  * {@link ru.reweu.game.render.WorldRenderer#prepareFrameFor}.
- * На кадр передаётся один {@link ru.reweu.game.render.LightingFrame} из {@link ru.reweu.game.render.SceneLighting#frame()};
- * {@code u_emissiveBoost} задаётся в {@link ru.reweu.game.render.SceneFrameUniforms#bindLitFrame}.
  */
 public final class GltfPbrRenderer {
 
     /** Совпадает с {@code u_modelBatch[64]} в шейдерах. */
     public static final int MAX_GLTF_INSTANCED_BATCH = 64;
 
+    private static final class LastMaterial {
+        int programId = -1;
+        int materialIndex = Integer.MIN_VALUE;
+    }
+
+    private static final LastMaterial LAST_MATERIAL = new LastMaterial();
+
     private GltfPbrRenderer() {
+    }
+
+    public static void removeUniformCacheForProgram(int programId) {
+        GltfProgramUniforms.removeForProgram(programId);
     }
 
     public static void initJointBlock(ShaderProgram shader) {
@@ -76,18 +85,14 @@ public final class GltfPbrRenderer {
         GltfModel gltfModel,
         GltfMaterialExtensionFlags materialExtensionFlags
     ) {
-        int pid = shader.getProgramId();
+        GltfProgramUniforms u = GltfProgramUniforms.forProgram(shader);
         shader.use();
-        setInt(pid, "u_instancedBatchCount", 0);
-
-        uploadJointBufferMorphAndSkin(pid, jointUbo, mesh, node, meshModel, morphWeightsOverride);
-
-        shader.setUniform("model", modelMatrix);
-        shader.setUniform("view", view);
-        shader.setUniform("projection", projection);
-
-        bindMaterial(pid, textures, mesh.material, mesh.materialModelIndex, gltfModel, materialExtensionFlags);
-
+        setInt(u.uInstancedBatchCount, 0);
+        uploadJointBufferMorphAndSkin(u, jointUbo, mesh, node, meshModel, morphWeightsOverride);
+        shader.setUniformMat4At(u.model, modelMatrix);
+        shader.setUniformMat4At(u.view, view);
+        shader.setUniformMat4At(u.projection, projection);
+        bindMaterial(u, textures, mesh.material, mesh.materialModelIndex, gltfModel, materialExtensionFlags);
         drawIndexedDoubleSided(mesh);
     }
 
@@ -102,22 +107,15 @@ public final class GltfPbrRenderer {
         Matrix4f lightSpaceMatrix,
         float[] morphWeightsOverride
     ) {
-        int pid = depthShader.getProgramId();
+        GltfProgramUniforms u = GltfProgramUniforms.forProgram(depthShader);
         depthShader.use();
-        setInt(pid, "u_instancedBatchCount", 0);
-
-        uploadJointBufferMorphAndSkin(pid, jointUbo, mesh, node, meshModel, morphWeightsOverride);
-
-        depthShader.setUniform("model", modelMatrix);
-        depthShader.setUniform("lightSpaceMatrix", lightSpaceMatrix);
-
+        setInt(u.uInstancedBatchCount, 0);
+        uploadJointBufferMorphAndSkin(u, jointUbo, mesh, node, meshModel, morphWeightsOverride);
+        depthShader.setUniformMat4At(u.model, modelMatrix);
+        depthShader.setUniformMat4At(u.lightSpaceMatrix, lightSpaceMatrix);
         drawIndexedDoubleSided(mesh);
     }
 
-    /**
-     * Несколько жёстких копий одного примитива (без скина и morph GPU): одна привязка материала,
-     * {@code glDrawElementsInstanced}.
-     */
     public static void drawInstancedForward(
         ShaderProgram shader,
         GltfTextureRegistry textures,
@@ -135,17 +133,17 @@ public final class GltfPbrRenderer {
         if (count <= 0 || count > MAX_GLTF_INSTANCED_BATCH) {
             return;
         }
-        int pid = shader.getProgramId();
+        GltfProgramUniforms u = GltfProgramUniforms.forProgram(shader);
         shader.use();
-        setInt(pid, "u_instancedBatchCount", 0);
-        uploadJointBufferMorphAndSkin(pid, jointUbo, mesh, firstNode, firstMeshModel, null);
-        shader.setUniform("view", view);
-        shader.setUniform("projection", projection);
-        bindMaterial(pid, textures, mesh.material, mesh.materialModelIndex, gltfModel, materialExtensionFlags);
-        setInt(pid, "u_instancedBatchCount", count);
-        shader.setUniformMat4Array("u_modelBatch", modelMatrices, count);
+        setInt(u.uInstancedBatchCount, 0);
+        uploadJointBufferMorphAndSkin(u, jointUbo, mesh, firstNode, firstMeshModel, null);
+        shader.setUniformMat4At(u.view, view);
+        shader.setUniformMat4At(u.projection, projection);
+        bindMaterial(u, textures, mesh.material, mesh.materialModelIndex, gltfModel, materialExtensionFlags);
+        setInt(u.uInstancedBatchCount, count);
+        shader.setUniformMat4ArrayCached(u.uModelBatch, modelMatrices, count);
         drawIndexedDoubleSidedInstanced(mesh, count);
-        setInt(pid, "u_instancedBatchCount", 0);
+        setInt(u.uInstancedBatchCount, 0);
     }
 
     public static void drawShadowDepthInstanced(
@@ -161,19 +159,19 @@ public final class GltfPbrRenderer {
         if (count <= 0 || count > MAX_GLTF_INSTANCED_BATCH) {
             return;
         }
-        int pid = depthShader.getProgramId();
+        GltfProgramUniforms u = GltfProgramUniforms.forProgram(depthShader);
         depthShader.use();
-        setInt(pid, "u_instancedBatchCount", 0);
-        uploadJointBufferMorphAndSkin(pid, jointUbo, mesh, firstNode, firstMeshModel, null);
-        depthShader.setUniform("lightSpaceMatrix", lightSpaceMatrix);
-        setInt(pid, "u_instancedBatchCount", count);
-        depthShader.setUniformMat4Array("u_modelBatch", modelMatrices, count);
+        setInt(u.uInstancedBatchCount, 0);
+        uploadJointBufferMorphAndSkin(u, jointUbo, mesh, firstNode, firstMeshModel, null);
+        depthShader.setUniformMat4At(u.lightSpaceMatrix, lightSpaceMatrix);
+        setInt(u.uInstancedBatchCount, count);
+        depthShader.setUniformMat4ArrayCached(u.uModelBatch, modelMatrices, count);
         drawIndexedDoubleSidedInstanced(mesh, count);
-        setInt(pid, "u_instancedBatchCount", 0);
+        setInt(u.uInstancedBatchCount, 0);
     }
 
     private static void uploadJointBufferMorphAndSkin(
-        int pid,
+        GltfProgramUniforms u,
         int jointUbo,
         GltfMeshDraw mesh,
         NodeModel node,
@@ -192,7 +190,7 @@ public final class GltfPbrRenderer {
             glBindBufferBase(GL_UNIFORM_BUFFER, 0, jointUbo);
         }
 
-        setInt(pid, "u_useSkinning", useSkin);
+        setInt(u.uUseSkinning, useSkin);
 
         float[] mw = meshModel != null ? meshModel.getWeights() : null;
         if (mw == null) {
@@ -202,19 +200,18 @@ public final class GltfPbrRenderer {
             mw = morphWeightsOverride;
         }
         int morphN = mesh.morphGpuCount;
-        int locW = ShaderProgram.uniformLocation(pid, "u_morphWeightsA");
         if (mw != null && morphN > 0) {
-            setInt(pid, "u_morphCount", morphN);
+            setInt(u.uMorphCount, morphN);
             glUniform4f(
-                locW,
+                u.uMorphWeightsA,
                 mw.length > 0 ? mw[0] : 0f,
                 mw.length > 1 ? mw[1] : 0f,
                 mw.length > 2 ? mw[2] : 0f,
                 mw.length > 3 ? mw[3] : 0f
             );
         } else {
-            setInt(pid, "u_morphCount", 0);
-            glUniform4f(locW, 0f, 0f, 0f, 0f);
+            setInt(u.uMorphCount, 0);
+            glUniform4f(u.uMorphWeightsA, 0f, 0f, 0f, 0f);
         }
     }
 
@@ -263,39 +260,43 @@ public final class GltfPbrRenderer {
     }
 
     private static void bindMaterial(
-        int pid,
+        GltfProgramUniforms u,
         GltfTextureRegistry tex,
         MaterialModelV2 m,
         int materialModelIndex,
         GltfModel gltfModel,
         GltfMaterialExtensionFlags materialExtensionFlags
     ) {
+        int pid = u.programId();
+        if (LAST_MATERIAL.programId == pid && LAST_MATERIAL.materialIndex == materialModelIndex) {
+            return;
+        }
+        LAST_MATERIAL.programId = pid;
+        LAST_MATERIAL.materialIndex = materialModelIndex;
+
         float[] bcf = m.getBaseColorFactor();
         if (bcf == null || bcf.length < 4) {
-            glUniform4f(ShaderProgram.uniformLocation(pid, "u_baseColorFactor"), 1f, 1f, 1f, 1f);
+            glUniform4f(u.uBaseColorFactor, 1f, 1f, 1f, 1f);
         } else {
-            glUniform4f(ShaderProgram.uniformLocation(pid, "u_baseColorFactor"), bcf[0], bcf[1], bcf[2], bcf[3]);
+            glUniform4f(u.uBaseColorFactor, bcf[0], bcf[1], bcf[2], bcf[3]);
         }
 
-        setInt(pid, "u_baseColorTexCoord", intOrZero(m.getBaseColorTexcoord()));
-        setInt(pid, "u_metallicRoughnessTexCoord", intOrZero(m.getMetallicRoughnessTexcoord()));
-        setInt(pid, "u_normalTexCoord", intOrZero(m.getNormalTexcoord()));
-        setInt(pid, "u_occlusionTexCoord", intOrZero(m.getOcclusionTexcoord()));
-        setInt(pid, "u_emissiveTexCoord", intOrZero(m.getEmissiveTexcoord()));
+        setInt(u.uBaseColorTexCoord, intOrZero(m.getBaseColorTexcoord()));
+        setInt(u.uMetallicRoughnessTexCoord, intOrZero(m.getMetallicRoughnessTexcoord()));
+        setInt(u.uNormalTexCoord, intOrZero(m.getNormalTexcoord()));
+        setInt(u.uOcclusionTexCoord, intOrZero(m.getOcclusionTexcoord()));
+        setInt(u.uEmissiveTexCoord, intOrZero(m.getEmissiveTexcoord()));
 
-        glUniform1f(ShaderProgram.uniformLocation(pid, "u_metallicFactor"), m.getMetallicFactor());
+        glUniform1f(u.uMetallicFactor, m.getMetallicFactor());
         float roughness = m.getRoughnessFactor();
-        if (gltfModel != null && materialExtensionFlags != null) {
-            int matIdx = materialModelIndex >= 0
-                ? materialModelIndex
-                : gltfModel.getMaterialModels().indexOf(m);
-            if (matIdx >= 0 && materialExtensionFlags.needsRoughnessFallback(matIdx)) {
+        if (gltfModel != null && materialExtensionFlags != null && materialModelIndex >= 0) {
+            if (materialExtensionFlags.needsRoughnessFallback(materialModelIndex)) {
                 roughness = Math.max(roughness, GameConfig.GLTF_EXTENSION_FALLBACK_MIN_ROUGHNESS);
             }
         }
-        glUniform1f(ShaderProgram.uniformLocation(pid, "u_roughnessFactor"), roughness);
-        glUniform1f(ShaderProgram.uniformLocation(pid, "u_normalScale"), m.getNormalScale());
-        glUniform1f(ShaderProgram.uniformLocation(pid, "u_occlusionStrength"), m.getOcclusionStrength());
+        glUniform1f(u.uRoughnessFactor, roughness);
+        glUniform1f(u.uNormalScale, m.getNormalScale());
+        glUniform1f(u.uOcclusionStrength, m.getOcclusionStrength());
 
         float[] ef = m.getEmissiveFactor();
         boolean hasEmissiveTex = m.getEmissiveTexture() != null;
@@ -313,7 +314,7 @@ public final class GltfPbrRenderer {
         if (hasEmissiveTex && (e0 + e1 + e2) < 1e-5f) {
             e0 = e1 = e2 = 1f;
         }
-        glUniform3f(ShaderProgram.uniformLocation(pid, "u_emissiveFactor"), e0, e1, e2);
+        glUniform3f(u.uEmissiveFactor, e0, e1, e2);
 
         MaterialModelV2.AlphaMode am = m.getAlphaMode();
         int alphaMode = 0;
@@ -322,9 +323,9 @@ public final class GltfPbrRenderer {
         } else if (am == MaterialModelV2.AlphaMode.BLEND) {
             alphaMode = 2;
         }
-        setInt(pid, "u_alphaMode", alphaMode);
-        glUniform1f(ShaderProgram.uniformLocation(pid, "u_alphaCutoff"), m.getAlphaCutoff());
-        setInt(pid, "u_doubleSided", m.isDoubleSided() ? 1 : 0);
+        setInt(u.uAlphaMode, alphaMode);
+        glUniform1f(u.uAlphaCutoff, m.getAlphaCutoff());
+        setInt(u.uDoubleSided, m.isDoubleSided() ? 1 : 0);
 
         boolean thinGlass = GltfThinGlass.shouldUseThinGlass(
             m,
@@ -336,35 +337,30 @@ public final class GltfPbrRenderer {
             materialExtensionFlags,
             materialModelIndex
         );
-        setInt(pid, "u_thinGlass", thinGlass ? 1 : 0);
+        setInt(u.uThinGlass, thinGlass ? 1 : 0);
 
-        bindTex(pid, tex, m.getBaseColorTexture(), "u_baseColor", GltfShaderTextureUnits.BASE_COLOR, true, "u_hasBaseColor");
-        bindTex(pid, tex, m.getMetallicRoughnessTexture(), "u_metallicRoughness", GltfShaderTextureUnits.METALLIC_ROUGHNESS, false, "u_hasMetallicRoughness");
-        bindTex(pid, tex, m.getNormalTexture(), "u_normal", GltfShaderTextureUnits.NORMAL, false, "u_hasNormal");
-        bindTex(pid, tex, m.getOcclusionTexture(), "u_occlusion", GltfShaderTextureUnits.OCCLUSION, false, "u_hasOcclusion");
-        bindTex(pid, tex, m.getEmissiveTexture(), "u_emissive", GltfShaderTextureUnits.EMISSIVE, true, "u_hasEmissive");
+        bindTex(u, tex, m.getBaseColorTexture(), u.uBaseColor, u.uHasBaseColor, GltfShaderTextureUnits.BASE_COLOR, true);
+        bindTex(u, tex, m.getMetallicRoughnessTexture(), u.uMetallicRoughness, u.uHasMetallicRoughness, GltfShaderTextureUnits.METALLIC_ROUGHNESS, false);
+        bindTex(u, tex, m.getNormalTexture(), u.uNormal, u.uHasNormal, GltfShaderTextureUnits.NORMAL, false);
+        bindTex(u, tex, m.getOcclusionTexture(), u.uOcclusion, u.uHasOcclusion, GltfShaderTextureUnits.OCCLUSION, false);
+        bindTex(u, tex, m.getEmissiveTexture(), u.uEmissive, u.uHasEmissive, GltfShaderTextureUnits.EMISSIVE, true);
         if (GameConfig.GLTF_DEBUG_DISABLE_NORMAL_MAP) {
-            setInt(pid, "u_hasNormal", 0);
+            setInt(u.uHasNormal, 0);
         }
-        int dbg = ShaderProgram.uniformLocation(pid, "u_debugVisualizeMode");
-        if (dbg != -1) {
-            glUniform1i(dbg, GameConfig.effectiveGltfDebugVisualizeMode());
+        if (u.uDebugVisualizeMode != -1) {
+            glUniform1i(u.uDebugVisualizeMode, GameConfig.effectiveGltfDebugVisualizeMode());
         }
-        int ntt = ShaderProgram.uniformLocation(pid, "u_enableNormalTexTransform");
-        if (ntt != -1) {
-            glUniform1i(ntt, 0);
+        if (u.uEnableNormalTexTransform != -1) {
+            glUniform1i(u.uEnableNormalTexTransform, 0);
         }
-        int nto = ShaderProgram.uniformLocation(pid, "u_normalTexTransformOffset");
-        if (nto != -1) {
-            glUniform2f(nto, 0f, 0f);
+        if (u.uNormalTexTransformOffset != -1) {
+            glUniform2f(u.uNormalTexTransformOffset, 0f, 0f);
         }
-        int nts = ShaderProgram.uniformLocation(pid, "u_normalTexTransformScale");
-        if (nts != -1) {
-            glUniform2f(nts, 1f, 1f);
+        if (u.uNormalTexTransformScale != -1) {
+            glUniform2f(u.uNormalTexTransformScale, 1f, 1f);
         }
-        int ntr = ShaderProgram.uniformLocation(pid, "u_normalTexTransformRotation");
-        if (ntr != -1) {
-            glUniform1f(ntr, 0f);
+        if (u.uNormalTexTransformRotation != -1) {
+            glUniform1f(u.uNormalTexTransformRotation, 0f);
         }
     }
 
@@ -373,31 +369,29 @@ public final class GltfPbrRenderer {
     }
 
     private static void bindTex(
-        int pid,
+        GltfProgramUniforms u,
         GltfTextureRegistry reg,
         de.javagl.jgltf.model.TextureModel tm,
-        String samplerName,
+        int samplerLoc,
+        int hasLoc,
         int unit,
-        boolean srgb,
-        String hasName
+        boolean srgb
     ) {
         Texture t = reg.get(tm, srgb);
         int has = t != null ? 1 : 0;
-        setInt(pid, hasName, has);
+        setInt(hasLoc, has);
         glActiveTexture(GL_TEXTURE0 + unit);
         if (t != null) {
             t.bind();
         } else {
             glBindTexture(GL_TEXTURE_2D, 0);
         }
-        int loc = ShaderProgram.uniformLocation(pid, samplerName);
-        if (loc != -1) {
-            glUniform1i(loc, unit);
+        if (samplerLoc != -1) {
+            glUniform1i(samplerLoc, unit);
         }
     }
 
-    private static void setInt(int pid, String name, int v) {
-        int loc = ShaderProgram.uniformLocation(pid, name);
+    private static void setInt(int loc, int v) {
         if (loc != -1) {
             glUniform1i(loc, v);
         }

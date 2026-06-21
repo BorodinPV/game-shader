@@ -85,6 +85,11 @@ public final class RuntimeGraphicsSettings {
     /** Ambient константа + цвета гемисферы (небо/земля) в world-шейдере. */
     private float lightingWorldIndirectScale;
 
+    private final Vector3f toggleScratchAmb = new Vector3f();
+    private final Vector3f toggleScratchSky = new Vector3f();
+    private final Vector3f toggleScratchGround = new Vector3f();
+    private final Vector3f toggleZero = new Vector3f();
+
     private RuntimeGraphicsSettings() {
     }
 
@@ -121,14 +126,14 @@ public final class RuntimeGraphicsSettings {
         float fillSpec = fillLightEnabled ? f.fillSpecularStrengthGltf() * lightingFillSpecularScale : 0f;
         float ibl = iblEnabled ? f.iblIntensity() * lightingIblScale : 0f;
         Vector3f amb = ambientConstantEnabled
-            ? new Vector3f(f.ambientColor()).mul(lightingWorldIndirectScale)
-            : new Vector3f(0f);
+            ? toggleScratchAmb.set(f.ambientColor()).mul(lightingWorldIndirectScale)
+            : toggleZero;
         Vector3f sky = hemisphereAmbientEnabled
-            ? new Vector3f(f.skyAmbientColor()).mul(lightingWorldIndirectScale)
-            : new Vector3f(0f);
+            ? toggleScratchSky.set(f.skyAmbientColor()).mul(lightingWorldIndirectScale)
+            : toggleZero;
         Vector3f ground = hemisphereAmbientEnabled
-            ? new Vector3f(f.groundAmbientColor()).mul(lightingWorldIndirectScale)
-            : new Vector3f(0f);
+            ? toggleScratchGround.set(f.groundAmbientColor()).mul(lightingWorldIndirectScale)
+            : toggleZero;
         float hemiMix = hemisphereAmbientEnabled ? f.hemiMix() : 0f;
         float hemiScale = hemisphereAmbientEnabled ? f.worldAmbientHemiScale() : 0f;
         float hemiHemi = hemisphereAmbientEnabled ? f.worldAmbientHemiHemi() : 0f;

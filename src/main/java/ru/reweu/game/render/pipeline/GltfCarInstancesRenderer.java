@@ -16,6 +16,7 @@ public final class GltfCarInstancesRenderer {
     private final List<GltfScene> gltfScenes;
     private final List<Vector3f> gltfWorldPositions;
     private final List<Float> gltfScales;
+    private final int instanceCount;
     private final Matrix4f tmpGltfRoot = new Matrix4f();
 
     public GltfCarInstancesRenderer(
@@ -26,6 +27,10 @@ public final class GltfCarInstancesRenderer {
         this.gltfScenes = gltfScenes;
         this.gltfWorldPositions = gltfWorldPositions;
         this.gltfScales = gltfScales;
+        this.instanceCount = Math.min(
+            gltfScenes.size(),
+            Math.min(gltfWorldPositions.size(), gltfScales.size())
+        );
     }
 
     public boolean hasInstances() {
@@ -57,8 +62,7 @@ public final class GltfCarInstancesRenderer {
         }
         updateAnimations(deltaTime);
         frame.prepareFrameFor(lit, gltfShaderProgram, view, projection, gltfShadowSample);
-        int n = Math.min(gltfScenes.size(), Math.min(gltfWorldPositions.size(), gltfScales.size()));
-        for (int gi = 0; gi < n; gi++) {
+        for (int gi = 0; gi < instanceCount; gi++) {
             GltfScene scene = gltfScenes.get(gi);
             if (scene == null) {
                 continue;
@@ -90,7 +94,7 @@ public final class GltfCarInstancesRenderer {
         } else {
             gltfShaderProgram.use();
         }
-        int nGltfBlend = Math.min(gltfScenes.size(), Math.min(gltfWorldPositions.size(), gltfScales.size()));
+        int nGltfBlend = instanceCount;
         for (int gi = 0; gi < nGltfBlend; gi++) {
             GltfScene scene = gltfScenes.get(gi);
             if (scene == null) {

@@ -30,6 +30,7 @@ import static org.lwjgl.system.MemoryStack.stackPush;
 import java.nio.FloatBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -41,6 +42,7 @@ import ru.reweu.game.loader.ResourceLoader;
 public class ShaderProgram {
     private final int programId;
     private static int activeProgramId;
+    private final Map<String, int[]> mat4ArrayLocationCache = new HashMap<>();
 
     /** programId → (name → location), включая -1 для отсутствующих uniform. */
     private static final Map<Integer, Map<String, Integer>> UNIFORM_LOCATIONS_BY_PROGRAM = new ConcurrentHashMap<>();
@@ -183,12 +185,57 @@ public class ShaderProgram {
     }
 
     public void setUniform(String name, Matrix4f value) {
-        int loc = uniformLocation(name);
-        if (loc == -1) {
+        setUniformMat4At(uniformLocation(name), value);
+    }
+
+    public void setUniformMat4At(int location, Matrix4f value) {
+        if (location == -1) {
             return;
         }
         try (var stack = stackPush()) {
-            glUniformMatrix4fv(loc, false, value.get(stack.mallocFloat(16)));
+            glUniformMatrix4fv(location, false, value.get(stack.mallocFloat(16)));
+        }
+    }
+
+    /** Кэш {@code name[0..count-1]} для instancing / light-space массивов. */
+    public int[] uniformMat4ArrayLocations(String name, int count) {
+        if (count <= 0) {
+            return new int[0];
+        }
+        return mat4ArrayLocationCache.computeIfAbsent(name, n -> {
+            int[] locs = new int[count];
+            for (int i = 0; i < count; i++) {
+                locs[i] = uniformLocation(n + "[" + i + "]");
+            }
+            return locs;
+        });
+    }
+
+    public void setUniformMat4ArrayCached(int[] locations, Matrix4f[] matrices, int count) {
+        if (locations == null || matrices == null || count <= 0) {
+            return;
+        }
+        int n = Math.min(count, locations.length);
+        try (var stack = stackPush()) {
+            for (int i = 0; i < n; i++) {
+                int loc = locations[i];
+                if (loc == -1) {
+                    continue;
+                }
+                glUniformMatrix4fv(loc, false, matrices[i].get(stack.mallocFloat(16)));
+            }
+        }
+    }
+
+    public void setUniformFloatArrayAt(int location, float[] values, int count) {
+        if (location == -1 || count <= 0 || values == null) {
+            return;
+        }
+        try (var stack = stackPush()) {
+            FloatBuffer fb = stack.mallocFloat(count);
+            fb.put(values, 0, count);
+            fb.flip();
+            glUniform1fv(location, fb);
         }
     }
 
@@ -220,18 +267,7 @@ public class ShaderProgram {
 
     /** Первые {@code count} матриц в uniform-массив {@code mat4 name[]}. */
     public void setUniformMat4Array(String name, Matrix4f[] matrices, int count) {
-        if (count <= 0) {
-            return;
-        }
-        try (var stack = stackPush()) {
-            for (int i = 0; i < count; i++) {
-                int loc = uniformLocation(programId, name + "[" + i + "]");
-                if (loc == -1) {
-                    continue;
-                }
-                glUniformMatrix4fv(loc, false, matrices[i].get(stack.mallocFloat(16)));
-            }
-        }
+        setUniformMat4ArrayCached(uniformMat4ArrayLocations(name, count), matrices, count);
     }
 
     /** Первые {@code count} элементов {@code float name[]}. */
@@ -257,6 +293,7 @@ public class ShaderProgram {
     public void cleanup() {
         glUseProgram(0);
         removeUniformCacheForProgram(programId);
+        ru.reweu.game.gltf.GltfPbrRenderer.removeUniformCacheForProgram(programId);
         glDeleteProgram(programId);
     }
 

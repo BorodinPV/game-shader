@@ -65,6 +65,104 @@ public final class SceneLighting {
         public static final Vector3f CLEAR_COLOR = new Vector3f(0.94f, 0.95f, 0.97f);
     }
 
+    private static final class PresetBase {
+        final Vector3f sunDirection;
+        final Vector3f sunColor;
+        final float sunIntensity;
+        final Vector3f ambientColor;
+        final Vector3f fillDirection;
+        final Vector3f fillColor;
+        final float fillStrengthWorld;
+        final float fillStrengthGltf;
+        final float fillSpecularStrengthGltf;
+        final float emissiveBoost;
+        final Vector3f skyAmbientColor;
+        final Vector3f groundAmbientColor;
+        final Vector3f clearColor;
+        final float exposure;
+        final float iblIntensity;
+
+        PresetBase(
+            Vector3f sunDirection,
+            Vector3f sunColor,
+            float sunIntensity,
+            Vector3f ambientColor,
+            Vector3f fillDirection,
+            Vector3f fillColor,
+            float fillStrengthWorld,
+            float fillStrengthGltf,
+            float fillSpecularStrengthGltf,
+            float emissiveBoost,
+            Vector3f skyAmbientColor,
+            Vector3f groundAmbientColor,
+            Vector3f clearColor,
+            float exposure,
+            float iblIntensity
+        ) {
+            this.sunDirection = sunDirection;
+            this.sunColor = sunColor;
+            this.sunIntensity = sunIntensity;
+            this.ambientColor = ambientColor;
+            this.fillDirection = fillDirection;
+            this.fillColor = fillColor;
+            this.fillStrengthWorld = fillStrengthWorld;
+            this.fillStrengthGltf = fillStrengthGltf;
+            this.fillSpecularStrengthGltf = fillSpecularStrengthGltf;
+            this.emissiveBoost = emissiveBoost;
+            this.skyAmbientColor = skyAmbientColor;
+            this.groundAmbientColor = groundAmbientColor;
+            this.clearColor = clearColor;
+            this.exposure = exposure;
+            this.iblIntensity = iblIntensity;
+        }
+    }
+
+    private static final Vector3f SUN_DIRECTION = computeSunDirection();
+    private static final Vector3f FILL_DIRECTION = computeFillDirection(SUN_DIRECTION);
+    private static final float SUN_HEIGHT_FACTOR = sunHeightFactor();
+    private static final Vector3f OUTDOOR_SUN_COLOR = sunColor(SUN_HEIGHT_FACTOR);
+    private static final float OUTDOOR_SUN_INTENSITY = sunIntensity(false, SUN_HEIGHT_FACTOR);
+    private static final Vector3f OUTDOOR_SKY = outdoorSkyAmbient(SUN_HEIGHT_FACTOR);
+    private static final Vector3f OUTDOOR_GROUND = outdoorGroundAmbient(SUN_HEIGHT_FACTOR, OUTDOOR_SUN_COLOR);
+    private static final Vector3f FILL_COLOR = new Vector3f(0.74f, 0.80f, 0.93f);
+    private static final Vector3f OUTDOOR_AMBIENT = new Vector3f(Outdoor.AMBIENT_R, Outdoor.AMBIENT_G, Outdoor.AMBIENT_B);
+
+    private static final PresetBase OUTDOOR_PRESET = new PresetBase(
+        SUN_DIRECTION,
+        OUTDOOR_SUN_COLOR,
+        OUTDOOR_SUN_INTENSITY,
+        OUTDOOR_AMBIENT,
+        FILL_DIRECTION,
+        FILL_COLOR,
+        Outdoor.FILL_STRENGTH_WORLD,
+        Outdoor.FILL_STRENGTH_GLTF,
+        Outdoor.FILL_SPECULAR_GLTF,
+        Outdoor.EMISSIVE_DISPLAY_BOOST,
+        OUTDOOR_SKY,
+        OUTDOOR_GROUND,
+        new Vector3f(OUTDOOR_SKY),
+        Outdoor.EXPOSURE,
+        Outdoor.IBL_INTENSITY
+    );
+
+    private static final PresetBase STUDIO_PRESET = new PresetBase(
+        SUN_DIRECTION,
+        OUTDOOR_SUN_COLOR,
+        sunIntensity(true, SUN_HEIGHT_FACTOR),
+        OUTDOOR_AMBIENT,
+        FILL_DIRECTION,
+        FILL_COLOR,
+        Studio.FILL_STRENGTH_WORLD,
+        Studio.FILL_STRENGTH_GLTF,
+        Studio.FILL_SPECULAR_GLTF,
+        Studio.EMISSIVE_DISPLAY_BOOST,
+        Studio.SKY_AMBIENT,
+        Studio.GROUND_AMBIENT,
+        Studio.CLEAR_COLOR,
+        Studio.EXPOSURE,
+        Studio.IBL_INTENSITY
+    );
+
     private SceneLighting() {
     }
 
@@ -95,52 +193,24 @@ public final class SceneLighting {
      * Снимок с учётом пресета студии (и далее — тогглов) из {@link RuntimeGraphicsSettings}.
      */
     public static LightingFrame frame(RuntimeGraphicsSettings rs) {
-        boolean studio = rs.isStudioPreset();
-        Vector3f sunDir = computeSunDirection();
-        float sunH = sunHeightFactor();
-
-        Vector3f sunCol = sunColor(sunH);
-        float sunInt = sunIntensity(studio, sunH);
-
-        Vector3f amb = new Vector3f(Outdoor.AMBIENT_R, Outdoor.AMBIENT_G, Outdoor.AMBIENT_B);
-        Vector3f fillDir = computeFillDirection(sunDir);
-        Vector3f fillCol = new Vector3f(0.74f, 0.80f, 0.93f);
-
-        float fillW = studio ? Studio.FILL_STRENGTH_WORLD : Outdoor.FILL_STRENGTH_WORLD;
-        float fillG = studio ? Studio.FILL_STRENGTH_GLTF : Outdoor.FILL_STRENGTH_GLTF;
-        float fillSpec = studio ? Studio.FILL_SPECULAR_GLTF : Outdoor.FILL_SPECULAR_GLTF;
-        float emissive = emissiveDisplayBoostForStudio(studio);
-
-        Vector3f sky;
-        Vector3f ground;
-        Vector3f clear;
-        if (studio) {
-            sky = new Vector3f(Studio.SKY_AMBIENT);
-            ground = new Vector3f(Studio.GROUND_AMBIENT);
-            clear = new Vector3f(Studio.CLEAR_COLOR);
-        } else {
-            sky = outdoorSkyAmbient(sunH);
-            ground = outdoorGroundAmbient(sunH, sunCol);
-            clear = new Vector3f(sky);
-        }
-
-        float exposure = (studio ? Studio.EXPOSURE : Outdoor.EXPOSURE) * GameConfig.effectiveExposureScale();
-        float ibl = (studio ? Studio.IBL_INTENSITY : Outdoor.IBL_INTENSITY) * GameConfig.effectiveIblIntensityScale();
+        PresetBase preset = rs.isStudioPreset() ? STUDIO_PRESET : OUTDOOR_PRESET;
+        float exposure = preset.exposure * GameConfig.effectiveExposureScale();
+        float ibl = preset.iblIntensity * GameConfig.effectiveIblIntensityScale();
 
         LightingFrame base = new LightingFrame(
-            sunDir,
-            sunCol,
-            sunInt,
-            amb,
-            fillDir,
-            fillCol,
-            fillW,
-            fillG,
-            fillSpec,
-            emissive,
-            sky,
-            ground,
-            clear,
+            preset.sunDirection,
+            preset.sunColor,
+            preset.sunIntensity,
+            preset.ambientColor,
+            preset.fillDirection,
+            preset.fillColor,
+            preset.fillStrengthWorld,
+            preset.fillStrengthGltf,
+            preset.fillSpecularStrengthGltf,
+            preset.emissiveBoost,
+            preset.skyAmbientColor,
+            preset.groundAmbientColor,
+            preset.clearColor,
             exposure,
             ibl,
             Outdoor.HEMI_MIX,
