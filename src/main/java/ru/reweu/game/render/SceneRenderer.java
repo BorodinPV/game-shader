@@ -124,7 +124,7 @@ public final class SceneRenderer {
         boolean gltfShadowSample = rs.isShadowsEnabled() && !GameConfig.GLTF_DEBUG_DISABLE_SHADOWS;
 
         if (rs.isDrawSky() && skyShader != null) {
-            SkyRenderer.draw(skyShader, view, projection, lit);
+            SkyRenderer.draw(skyShader, view, projection, lit, (float) org.lwjgl.glfw.GLFW.glfwGetTime());
         }
 
         litFrame.prepareFrame(lit, view, projection, worldShadowSample);
