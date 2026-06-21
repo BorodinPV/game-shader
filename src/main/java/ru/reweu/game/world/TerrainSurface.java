@@ -5,6 +5,7 @@ import java.util.List;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
+import ru.reweu.game.GameConfig;
 import ru.reweu.game.loader.Mesh;
 
 /**
@@ -188,7 +189,8 @@ public final class TerrainSurface {
         Vector4f tmp = new Vector4f();
         Matrix4f model = new Matrix4f();
         for (Mesh mesh : meshes) {
-            model.identity().translate(translation).scale(mesh.getScale());
+            float s = mesh.getScale();
+            model.identity().translate(translation).scale(s, s * GameConfig.LANDSCAPE_Y_SCALE, s);
             List<Vector3f> verts = mesh.getCollisionVertices();
             List<Integer> idx = mesh.getCollisionIndices();
             for (int i = 0; i < idx.size(); i += 3) {

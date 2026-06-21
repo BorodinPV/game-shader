@@ -22,6 +22,8 @@ public final class GameConfig {
 
     public static final float LANDSCAPE_TEXTURE_SCALE = 4.5f;
     public static final float LANDSCAPE_OFFSET_Y = -10f;
+    /** Сжатие ландшафта по Y: чем меньше значение, тем более пологий рельеф (1 = без изменений). */
+    public static final float LANDSCAPE_Y_SCALE = 0.2f;
 
     /** Ландшафт (OBJ); для отладки без рельефа можно поставить {@code false}. */
     public static final boolean DRAW_LANDSCAPE = true;

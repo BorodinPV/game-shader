@@ -13,6 +13,9 @@ public class Camera {
     private static final float MIN_PITCH = -89.0f;
     private static final float MAX_PITCH = 89.0f;
     private static final float MOVE_SPEED = 6f;
+    private static final float SPRINT_MULTIPLIER = 2.0f;
+    private static final float JUMP_VELOCITY = 6f;
+    private static final float GRAVITY = -15f;
 
     private final Vector3f position;
     private final Vector3f front;
@@ -29,6 +32,9 @@ public class Camera {
     private float pitch;
     private float mouseSensitivity = 0.1f;
     private boolean viewDirty = true;
+
+    private float verticalVelocity = 0f;
+    private boolean onGround = true;
 
     public Camera(Vector3f position, Vector3f up, float yaw, float pitch) {
         this.position = new Vector3f(position);
@@ -77,8 +83,9 @@ public class Camera {
         return viewMatrix;
     }
 
-    public void processKeyboard(int key, float deltaTime) {
-        float velocity = MOVE_SPEED * deltaTime;
+    public void processKeyboard(int key, float deltaTime, boolean sprinting) {
+        float speed = MOVE_SPEED * (sprinting ? SPRINT_MULTIPLIER : 1f);
+        float velocity = speed * deltaTime;
 
         frontOnXZ.set(front.x, 0f, front.z).normalize();
         rightOnXZ.set(right.x, 0f, right.z).normalize();
@@ -103,6 +110,48 @@ public class Camera {
             position.add(moveDelta);
             viewDirty = true;
         }
+    }
+
+    /** Прыжок — задаёт начальную вертикальную скорость (только если персонаж на земле). */
+    public void jump() {
+        if (onGround) {
+            verticalVelocity = JUMP_VELOCITY;
+            onGround = false;
+        }
+    }
+
+    /**
+     * Обновляет вертикальную физику (гравитация + столкновение с рельефом).
+     *
+     * @param terrainY высота рельефа под камерой (или {@link Float#NaN} если нет)
+     * @param eyeHeight высота глаз над рельефом
+     * @param deltaTime время кадра
+     */
+    public void updatePhysics(float terrainY, float eyeHeight, float deltaTime) {
+        if (Float.isNaN(terrainY)) {
+            return;
+        }
+        float groundY = terrainY + eyeHeight;
+
+        if (!onGround) {
+            verticalVelocity += GRAVITY * deltaTime;
+            position.y += verticalVelocity * deltaTime;
+
+            if (position.y <= groundY) {
+                position.y = groundY;
+                verticalVelocity = 0f;
+                onGround = true;
+            }
+            viewDirty = true;
+        } else {
+            // Snap to ground when standing
+            position.y = groundY;
+            viewDirty = true;
+        }
+    }
+
+    public boolean isOnGround() {
+        return onGround;
     }
 
     public void setThirdPersonView(Vector3f modelPosition, float distanceBehind, float heightAbove) {

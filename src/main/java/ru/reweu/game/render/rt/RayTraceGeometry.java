@@ -181,7 +181,7 @@ public final class RayTraceGeometry {
         Matrix4f m = new Matrix4f();
         if (landscape != null && !landscape.isEmpty() && landscape.get(0).length > 0) {
             float sc = landscape.get(0)[0].getScale();
-            m.translate(0f, GameConfig.LANDSCAPE_OFFSET_Y, 0f).scale(sc);
+            m.translate(0f, GameConfig.LANDSCAPE_OFFSET_Y, 0f).scale(sc, sc * GameConfig.LANDSCAPE_Y_SCALE, sc);
         }
         return m;
     }

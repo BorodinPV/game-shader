@@ -88,7 +88,7 @@ public final class ShadowDepthPass {
                     float scale = meshGroup[0].getScale();
                     tmpLandscapeModel.identity()
                         .translate(0f, GameConfig.LANDSCAPE_OFFSET_Y, 0f)
-                        .scale(scale);
+                        .scale(scale, scale * GameConfig.LANDSCAPE_Y_SCALE, scale);
                     renderWorldMeshesDepth(meshDepthShader, meshGroup, tmpLandscapeModel, lightSpace);
                 }
             }

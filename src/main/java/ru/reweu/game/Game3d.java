@@ -92,6 +92,7 @@ public class Game3d {
     private PauseMenu pauseMenu;
     private boolean menuOpen;
     private boolean escKeyDown;
+    private boolean spaceKeyDown;
 
     private final int[] framebufferWidthArr = new int[1];
     private final int[] framebufferHeightArr = new int[1];
@@ -335,7 +336,8 @@ public class Game3d {
             processInput();
 
             syncCarHeightFromTerrain();
-            snapCameraToTerrain();
+            float terrainH = terrainSurface.heightAt(camera.getPosition().x, camera.getPosition().z);
+            camera.updatePhysics(terrainH, GameConfig.CAMERA_EYE_HEIGHT, deltaTime);
 
             RuntimeGraphicsSettings rs = RuntimeGraphicsSettings.get();
             LightingFrame lit = SceneLighting.frame(rs);
@@ -381,17 +383,29 @@ public class Game3d {
 
     private void processInput() {
         if (!menuOpen) {
+            boolean sprinting = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS
+                || glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS;
+
             if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-                camera.processKeyboard(GLFW_KEY_W, deltaTime);
+                camera.processKeyboard(GLFW_KEY_W, deltaTime, sprinting);
             }
             if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-                camera.processKeyboard(GLFW_KEY_S, deltaTime);
+                camera.processKeyboard(GLFW_KEY_S, deltaTime, sprinting);
             }
             if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-                camera.processKeyboard(GLFW_KEY_A, deltaTime);
+                camera.processKeyboard(GLFW_KEY_A, deltaTime, sprinting);
             }
             if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-                camera.processKeyboard(GLFW_KEY_D, deltaTime);
+                camera.processKeyboard(GLFW_KEY_D, deltaTime, sprinting);
+            }
+
+            if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+                if (!spaceKeyDown) {
+                    spaceKeyDown = true;
+                    camera.jump();
+                }
+            } else {
+                spaceKeyDown = false;
             }
         }
 

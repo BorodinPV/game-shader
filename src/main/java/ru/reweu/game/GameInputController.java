@@ -27,9 +27,11 @@ public final class GameInputController {
 
     public void update(long window, Camera camera, PauseMenu pauseMenu, float deltaTime) {
         if (!menuOpen) {
+            boolean sprinting = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS
+                || glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS;
             for (int key : MOVEMENT_KEYS) {
                 if (glfwGetKey(window, key) == GLFW_PRESS) {
-                    camera.processKeyboard(key, deltaTime);
+                    camera.processKeyboard(key, deltaTime, sprinting);
                 }
             }
         }
