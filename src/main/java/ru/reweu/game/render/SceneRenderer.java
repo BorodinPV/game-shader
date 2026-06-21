@@ -120,7 +120,15 @@ public final class SceneRenderer {
         if (shadowPass) {
             shadowDepthPass.renderCascades(sm, rs);
         }
-        glViewport(0, 0, Math.max(1, framebufferWidth), Math.max(1, framebufferHeight));
+        
+        // Cache viewport to avoid redundant GL calls
+        int vw = Math.max(1, framebufferWidth);
+        int vh = Math.max(1, framebufferHeight);
+        if (cachedViewportW != vw || cachedViewportH != vh) {
+            glViewport(0, 0, vw, vh);
+            cachedViewportW = vw;
+            cachedViewportH = vh;
+        }
 
         boolean worldShadowSample = rs.isShadowsEnabled();
         boolean gltfShadowSample = rs.isShadowsEnabled() && !GameConfig.GLTF_DEBUG_DISABLE_SHADOWS;

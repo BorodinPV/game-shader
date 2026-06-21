@@ -88,7 +88,8 @@ public class ShaderRender {
         float[] distSq = transparentDistScratch;
         int[] order = transparentOrderScratch;
         for (int i = 0; i < n; i++) {
-            TMP_SORT_POS.set(meshes.get(i).getLocalCenterApprox());
+            // Use getLocalCenterDirect to avoid allocation per mesh
+            TMP_SORT_POS.set(meshes.get(i).getLocalCenterDirect());
             model.transformPosition(TMP_SORT_POS);
             distSq[i] = TMP_SORT_POS.distanceSquared(cameraWorldPos);
         }

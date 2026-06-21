@@ -224,6 +224,11 @@ public class Mesh {
     public Vector3f getLocalCenterApprox() {
         return new Vector3f(localCenterApprox);
     }
+    
+    // Internal method for performance-critical paths: avoids allocation
+    public Vector3f getLocalCenterDirect() {
+        return localCenterApprox;
+    }
 
     public boolean isTransparentOverlayPass() {
         return transparentOverlayPass;
