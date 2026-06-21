@@ -30,6 +30,8 @@ public final class PropMeshesRasterPass {
     // Optimization: reuse lists to avoid allocations per frame
     private final List<Mesh> overlayMeshes = new ArrayList<>();
     private final List<Mesh> solidMeshes = new ArrayList<>();
+    // Optimization: cache solid mesh array to avoid toArray() allocation
+    private Mesh[] solidMeshArray = new Mesh[0];
 
     public PropMeshesRasterPass(List<Mesh[]> propMeshes, List<Vector3f> propWorldPositions) {
         this.propMeshes = propMeshes;
@@ -75,11 +77,16 @@ public final class PropMeshesRasterPass {
             }
             
             if (!solidMeshes.isEmpty()) {
-                Mesh[] solidArr = solidMeshes.toArray(new Mesh[0]);
-                sortMeshesByMaterialState(solidArr);
+                // Reuse cached array instead of creating new one with toArray()
+                if (solidMeshArray.length < solidMeshes.size()) {
+                    solidMeshArray = new Mesh[solidMeshes.size()];
+                }
+                solidMeshes.toArray(solidMeshArray);
+                // Only sort the elements we actually use
+                sortMeshesByMaterialState(solidMeshArray);
                 glDisable(GL_BLEND);
                 glDepthMask(true);
-                renderWorldMeshes(worldShader, solidArr, tmpPropModel, view, projection, true);
+                renderWorldMeshes(worldShader, solidMeshArray, tmpPropModel, view, projection, true);
             }
             
             if (!overlayMeshes.isEmpty()) {

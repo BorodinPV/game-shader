@@ -4,28 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4f6864b3-ecff-4661-a787-27435afc488a" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.cursor/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/amplicode-jpa.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/checkstyle-idea.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/jarRepositories.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/Camera.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/Camera.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/Game3d.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/Game3d.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/RuntimeGraphicsSettings.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/RuntimeGraphicsSettings.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/gltf/GltfPbrRenderer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/gltf/GltfPbrRenderer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/render/SceneFrameUniforms.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/render/SceneFrameUniforms.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/render/SceneLighting.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/render/SceneLighting.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/render/SceneRenderer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/render/SceneRenderer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/render/ShaderProgram.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/render/ShaderProgram.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/render/WorldRenderer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/render/WorldRenderer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/render/pipeline/GltfCarInstancesRenderer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/render/pipeline/GltfCarInstancesRenderer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/render/pipeline/ShadowDepthPass.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/render/pipeline/ShadowDepthPass.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/world/TerrainSurface.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/world/TerrainSurface.java" afterDir="false" />
-    </list>
+    <list default="true" id="4f6864b3-ecff-4661-a787-27435afc488a" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -52,23 +31,23 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.4852188397215333" />
-      <entry key="MS500" value="4.257776542230511" />
-      <entry key="S2" value="13.790151657640472" />
-      <entry key="S5" value="21.994040946044475" />
-      <entry key="S10" value="26.3573237246643" />
-      <entry key="S30" value="30.537224910760703" />
-      <entry key="S60" value="39.34829232084017" />
-      <entry key="M2" value="72.29504467453802" />
-      <entry key="M5" value="169.48189872577268" />
-      <entry key="M10" value="276.63659132664407" />
-      <entry key="M15" value="345.24216065142815" />
-      <entry key="M30" value="459.7133582627056" />
-      <entry key="H1" value="554.9348825857297" />
-      <entry key="H2" value="620.681342580936" />
-      <entry key="H4" value="660.1049206411218" />
-      <entry key="D1" value="697.0954741411433" />
-      <entry key="W1" value="703.8598446679694" />
+      <entry key="MS100" value="1.4910408983821564" />
+      <entry key="MS500" value="4.850223367234733" />
+      <entry key="S2" value="10.594825911615562" />
+      <entry key="S5" value="13.40267057850277" />
+      <entry key="S10" value="14.61245811840715" />
+      <entry key="S30" value="15.534739078548487" />
+      <entry key="S60" value="16.738426722756213" />
+      <entry key="M2" value="25.568066263763626" />
+      <entry key="M5" value="86.192045675909" />
+      <entry key="M10" value="196.22187869440486" />
+      <entry key="M15" value="280.0521080629174" />
+      <entry key="M30" value="430.2370400389234" />
+      <entry key="H1" value="559.1945147529246" />
+      <entry key="H2" value="649.3270486072215" />
+      <entry key="H4" value="703.7307746385816" />
+      <entry key="D1" value="755.0122867676122" />
+      <entry key="W1" value="764.414486336527" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
@@ -90,23 +69,23 @@
       <entry key="W1" value="0.0" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.4422203860303497" />
-      <entry key="MS500" value="4.233312264388281" />
-      <entry key="S2" value="13.769601805044717" />
-      <entry key="S5" value="21.98083974543025" />
-      <entry key="S10" value="26.349399651500494" />
-      <entry key="S30" value="30.53415999925999" />
-      <entry key="S60" value="39.3462973014733" />
-      <entry key="M2" value="72.29316061528021" />
-      <entry key="M5" value="169.48006904199804" />
-      <entry key="M10" value="276.63506943707404" />
-      <entry key="M15" value="345.2408834709822" />
-      <entry key="M30" value="459.71249678591187" />
-      <entry key="H1" value="554.9343572147861" />
-      <entry key="H2" value="620.6810467860465" />
-      <entry key="H4" value="660.1047627449132" />
-      <entry key="D1" value="697.095446254344" />
-      <entry key="W1" value="703.8598406430066" />
+      <entry key="MS100" value="1.441526373164473" />
+      <entry key="MS500" value="4.820129812782756" />
+      <entry key="S2" value="10.577874847203022" />
+      <entry key="S5" value="13.393955674297125" />
+      <entry key="S10" value="14.607678196825164" />
+      <entry key="S30" value="15.533038022362533" />
+      <entry key="S60" value="16.737511865859336" />
+      <entry key="M2" value="25.567377700865684" />
+      <entry key="M5" value="86.19111901830169" />
+      <entry key="M10" value="196.22080748359616" />
+      <entry key="M15" value="280.05107991853004" />
+      <entry key="M30" value="430.23623958150574" />
+      <entry key="H1" value="559.1939889780522" />
+      <entry key="H2" value="649.326741217496" />
+      <entry key="H4" value="703.7306074050848" />
+      <entry key="D1" value="755.0122567573987" />
+      <entry key="W1" value="764.4144819932008" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -170,7 +149,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1782044957187</updated>
-      <workItem from="1782044959191" duration="4051000" />
+      <workItem from="1782044959191" duration="4581000" />
     </task>
     <servers />
   </component>

@@ -256,7 +256,7 @@ public class Mesh {
 
         glBindVertexArray(vaoId);
         glDrawElements(GL_TRIANGLES, vertexCount, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
+        // No need to unbind VAO - next render will bind a different one
     }
 
     public void render() {
@@ -268,6 +268,7 @@ public class Mesh {
         setPlanarUvUniforms(ShaderProgram.getActiveProgramId());
         glBindVertexArray(vaoId);
         glDrawElements(GL_TRIANGLES, vertexCount, GL_UNSIGNED_INT, 0);
+        // No need to unbind VAO - next render will bind a different one
         glBindVertexArray(0);
     }
 
