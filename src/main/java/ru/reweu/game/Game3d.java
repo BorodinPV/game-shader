@@ -259,7 +259,6 @@ public class Game3d {
         skyShaderProgram = new ShaderProgram("/shaders/sky_pass.vert", "/shaders/sky_pass.frag");
         worldRenderer = new WorldRenderer(worldShaderProgram, shadowMap, brdfLutTexture, environmentIbl);
         worldRenderer.setAppConfig(
-            GameConfig.LANDSCAPE_TEXTURE_SCALE,
             GameConfig.FAR_PLANE,
             new LitFrameUniformCache.ShadowUniformConfig(
                 GameConfig.effectiveShadowBiasScaleForProgram(true),

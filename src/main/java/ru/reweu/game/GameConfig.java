@@ -20,7 +20,7 @@ public final class GameConfig {
     private GameConfig() {
     }
 
-    public static final float LANDSCAPE_TEXTURE_SCALE = 4.5f;
+    public static final float LANDSCAPE_TEXTURE_SCALE = 27.0f;
     public static final float LANDSCAPE_OFFSET_Y = -10f;
     /** Сжатие ландшафта по Y: чем меньше значение, тем более пологий рельеф (1 = без изменений). */
     public static final float LANDSCAPE_Y_SCALE = 0.2f;
