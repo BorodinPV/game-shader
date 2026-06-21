@@ -77,6 +77,7 @@ public final class RuntimeGraphicsSettingsPersistence {
             optBool(o, "drawProps", s::setDrawProps);
             optBool(o, "drawSky", s::setDrawSky);
             optBool(o, "showFpsOverlay", s::setShowFpsOverlay);
+            optBool(o, "rainEnabled", s::setRainEnabled);
             optBool(o, "gltfShadowPcfUseShadingNormal", s::setGltfShadowPcfUseShadingNormal);
 
             optFloat(o, "shadowBiasWorld", s::setShadowBiasWorld);
@@ -116,6 +117,7 @@ public final class RuntimeGraphicsSettingsPersistence {
         b.add("drawProps", s.isDrawProps());
         b.add("drawSky", s.isDrawSky());
         b.add("showFpsOverlay", s.isShowFpsOverlay());
+        b.add("rainEnabled", s.isRainEnabled());
         b.add("gltfShadowPcfUseShadingNormal", s.isGltfShadowPcfUseShadingNormal());
         b.add("shadowBiasWorld", s.getShadowBiasWorld());
         b.add("shadowBiasGltf", s.getShadowBiasGltf());

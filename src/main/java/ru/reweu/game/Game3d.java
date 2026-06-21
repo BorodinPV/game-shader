@@ -24,6 +24,7 @@ import ru.reweu.game.render.ibl.EnvironmentIbl;
 import ru.reweu.game.render.ibl.IblEquirectLoader;
 import ru.reweu.game.render.LightingFrame;
 import ru.reweu.game.render.LitFrameUniformCache;
+import ru.reweu.game.render.RainRenderer;
 import ru.reweu.game.render.RenderErrorLog;
 import ru.reweu.game.render.SceneLighting;
 import ru.reweu.game.render.SceneRenderer;
@@ -85,6 +86,7 @@ public class Game3d {
     private ShaderProgram skyShaderProgram;
     private RayTraceRenderer rayTraceRenderer;
     private InstancingDemoRenderer instancingDemo;
+    private RainRenderer rainRenderer;
 
     private float lastFrameTime;
     private float deltaTime;
@@ -271,6 +273,7 @@ public class Game3d {
         if (GameConfig.effectiveInstancingDemoEnabled()) {
             instancingDemo = new InstancingDemoRenderer();
         }
+        rainRenderer = new RainRenderer();
         RayTraceRenderer rt = null;
         if (GameConfig.RAY_TRACE_ENABLED) {
             if (!GL.getCapabilities().OpenGL43) {
@@ -339,6 +342,9 @@ public class Game3d {
             camera.updatePhysics(terrainH, GameConfig.CAMERA_EYE_HEIGHT, deltaTime);
 
             RuntimeGraphicsSettings rs = RuntimeGraphicsSettings.get();
+            if (rs.isRainEnabled()) {
+                rainRenderer.update(deltaTime, camera.getPosition());
+            }
             LightingFrame lit = SceneLighting.frame(rs);
             Vector3f clearRgb = lit.clearColor();
             glClearColor(clearRgb.x, clearRgb.y, clearRgb.z, 1f);
@@ -365,6 +371,10 @@ public class Game3d {
                 fbW,
                 fbH
             );
+
+            if (rs.isRainEnabled()) {
+                rainRenderer.render(view, projection);
+            }
 
             if (rs.isShowFpsOverlay()) {
                 fpsCounter.render();
@@ -504,6 +514,9 @@ public class Game3d {
         }
         if (instancingDemo != null) {
             instancingDemo.cleanup();
+        }
+        if (rainRenderer != null) {
+            rainRenderer.cleanup();
         }
         worldShaderProgram.cleanup();
     }

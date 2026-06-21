@@ -62,6 +62,7 @@ public final class RuntimeGraphicsSettings {
     private boolean drawProps;
     private boolean drawSky;
     private boolean showFpsOverlay;
+    private boolean rainEnabled;
 
     /** Множитель slope-bias PCF для ландшафта (меню / рантайм; старт из env и дефолтов {@link GameConfig}). */
     private float shadowBiasWorld;
@@ -106,6 +107,7 @@ public final class RuntimeGraphicsSettings {
         drawProps = !GameConfig.USE_GLTF_NATIVE_LOADER;
         drawSky = true;
         showFpsOverlay = true;
+        rainEnabled = false;
         shadowBiasWorld = GameConfig.effectiveShadowBiasScaleForProgram(true);
         shadowBiasGltf = GameConfig.effectiveShadowBiasScaleForProgram(false);
         gltfShadowReceiveFloor = GameConfig.effectiveGltfShadowReceiveFloor();
@@ -256,6 +258,14 @@ public final class RuntimeGraphicsSettings {
 
     public void setShowFpsOverlay(boolean showFpsOverlay) {
         this.showFpsOverlay = showFpsOverlay;
+    }
+
+    public boolean isRainEnabled() {
+        return rainEnabled;
+    }
+
+    public void setRainEnabled(boolean rainEnabled) {
+        this.rainEnabled = rainEnabled;
     }
 
     public float getShadowBiasWorld() {

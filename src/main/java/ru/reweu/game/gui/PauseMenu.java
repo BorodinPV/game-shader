@@ -163,6 +163,7 @@ public final class PauseMenu {
             new Row("Пропы (Assimp)", rs::setDrawProps, rs::isDrawProps),
             new Row("Небо", rs::setDrawSky, rs::isDrawSky),
             new Row("FPS-счётчик", rs::setShowFpsOverlay, rs::isShowFpsOverlay),
+            new Row("Дождь", rs::setRainEnabled, rs::isRainEnabled),
         };
         lightingSliders = new SliderRow[] {
             new SliderRow("Exposure ×", rs::getLightingExposureScale, rs::setLightingExposureScale, 0.2f, 3f),
