@@ -8,6 +8,7 @@ import ru.reweu.game.gltf.GltfPbrRenderer;
 import ru.reweu.game.gltf.GltfScene;
 import ru.reweu.game.loader.Mesh;
 import ru.reweu.game.loader.ModelLoader;
+import ru.reweu.game.loader.ModelLoaderReport;
 import ru.reweu.game.loader.ResourceLoader;
 import ru.reweu.game.render.RenderErrorLog;
 import ru.reweu.game.render.ShaderProgram;
@@ -45,7 +46,7 @@ public final class GameSceneAssets implements AutoCloseable {
             landscape.add(ModelLoader.loadModel("/models/landscape/landscape.obj", 1f));
         }
         if (GameConfig.isDumpAssimpReportOnStart()) {
-            ModelLoader.dumpAssimpSceneReport(GameConfig.FORD_MUSTANG_1965_GLB);
+            ModelLoaderReport.dumpAssimpSceneReport(GameConfig.FORD_MUSTANG_1965_GLB);
         }
 
         if (GameConfig.USE_GLTF_NATIVE_LOADER) {
@@ -65,7 +66,7 @@ public final class GameSceneAssets implements AutoCloseable {
                 ModelLoader.loadModel(GameConfig.FORD_MUSTANG_1965_GLB, GameConfig.FORD_MUSTANG_MODEL_SCALE));
             propInstancePositions.add(mustangPosition);
             if (GameConfig.isDumpAssimpReportOnStart()) {
-                ModelLoader.dumpLoadedMeshesSummary(propMeshes.get(propMeshes.size() - 1));
+                ModelLoaderReport.dumpLoadedMeshesSummary(propMeshes.get(propMeshes.size() - 1));
             }
         }
 

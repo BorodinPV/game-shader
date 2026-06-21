@@ -41,10 +41,6 @@ public final class SceneRenderer {
 
     private final Matrix4f tmpLandscapeModel = new Matrix4f();
 
-    // Optimization: cache viewport size to avoid glViewport() every frame
-    private int cachedViewportW = -1;
-    private int cachedViewportH = -1;
-
     public SceneRenderer(
         List<Mesh[]> landscapeMeshes,
         List<Mesh[]> propMeshes,
@@ -121,20 +117,14 @@ public final class SceneRenderer {
             shadowDepthPass.renderCascades(sm, rs);
         }
         
-        // Cache viewport to avoid redundant GL calls
-        int vw = Math.max(1, framebufferWidth);
-        int vh = Math.max(1, framebufferHeight);
-        if (cachedViewportW != vw || cachedViewportH != vh) {
-            glViewport(0, 0, vw, vh);
-            cachedViewportW = vw;
-            cachedViewportH = vh;
-        }
+        // Shadow pass sets viewport to shadow map size; always restore for the main pass
+        glViewport(0, 0, Math.max(1, framebufferWidth), Math.max(1, framebufferHeight));
 
         boolean worldShadowSample = rs.isShadowsEnabled();
         boolean gltfShadowSample = rs.isShadowsEnabled() && !GameConfig.GLTF_DEBUG_DISABLE_SHADOWS;
 
         if (rs.isDrawSky() && skyShader != null) {
-            SkyRenderer.draw(skyShader, view, projection, litFrame.getEnvironmentIbl(), lit);
+            SkyRenderer.draw(skyShader, view, projection, lit);
         }
 
         litFrame.prepareFrame(lit, view, projection, worldShadowSample);

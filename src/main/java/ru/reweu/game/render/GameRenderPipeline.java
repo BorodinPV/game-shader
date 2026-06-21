@@ -56,15 +56,40 @@ public final class GameRenderPipeline implements AutoCloseable {
             "/shaders/vertex_shader.glsl",
             "/shaders/fragment_shader.glsl"
         );
-        DirectionalShadowMap shadowMap = new DirectionalShadowMap(GameConfig.effectiveShadowMapSize());
+        DirectionalShadowMap shadowMap = new DirectionalShadowMap(
+            GameConfig.effectiveShadowMapSize(),
+            GameConfig.effectiveShadowCascadeCount(),
+            GameConfig.SHADOW_CASCADE_LAMBDA,
+            GameConfig.FOV_DEGREES,
+            GameConfig.NEAR_PLANE,
+            GameConfig.FAR_PLANE,
+            SceneLighting.frame().sunDirection()
+        );
         BrdfLutTexture brdfLutTexture = new BrdfLutTexture();
-        int equirectTex = IblEquirectLoader.createEquirectTexture(GameConfig.IBL_HDR_EQUIRECT);
+        int equirectTex = IblEquirectLoader.createEquirectTexture(
+            GameConfig.IBL_HDR_EQUIRECT != null
+                ? ru.reweu.game.loader.ResourceLoader.tryLoadResourceAsFile(GameConfig.IBL_HDR_EQUIRECT) != null
+                    ? ru.reweu.game.loader.ResourceLoader.tryLoadResourceAsFile(GameConfig.IBL_HDR_EQUIRECT).toPath()
+                    : null
+                : null
+        );
         EnvironmentIbl environmentIbl = new EnvironmentIbl(equirectTex);
         ShaderProgram meshDepthShader = new ShaderProgram("/shaders/mesh_depth.vert", "/shaders/mesh_depth.frag");
         ShaderProgram gltfDepthShader = new ShaderProgram("/shaders/pbr_gltf_shadow.vert", "/shaders/mesh_depth.frag");
         GltfPbrRenderer.initJointBlock(gltfDepthShader);
         ShaderProgram skyShaderProgram = new ShaderProgram("/shaders/sky_pass.vert", "/shaders/sky_pass.frag");
         WorldRenderer worldRenderer = new WorldRenderer(worldShaderProgram, shadowMap, brdfLutTexture, environmentIbl);
+        worldRenderer.setAppConfig(
+            GameConfig.LANDSCAPE_TEXTURE_SCALE,
+            GameConfig.FAR_PLANE,
+            new LitFrameUniformCache.ShadowUniformConfig(
+                GameConfig.effectiveShadowBiasScaleForProgram(true),
+                GameConfig.effectiveShadowBiasScaleForProgram(false),
+                GameConfig.effectiveGltfShadowReceiveFloor(),
+                GameConfig.effectiveDiagnosticGltfNoIblOcclusion(),
+                GameConfig.effectiveShadowPcfUseShadingNormal()
+            )
+        );
 
         InstancingDemoRenderer instancingDemo = null;
         if (GameConfig.effectiveInstancingDemoEnabled()) {

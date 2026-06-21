@@ -11,9 +11,11 @@ import ru.reweu.game.gui.FPSCounter;
 import ru.reweu.game.gui.PauseMenu;
 import java.nio.file.Path;
 import ru.reweu.game.gltf.GltfPbrRenderer;
+import ru.reweu.game.gltf.GltfRenderConfig;
 import ru.reweu.game.gltf.GltfScene;
 import ru.reweu.game.loader.Mesh;
 import ru.reweu.game.loader.ModelLoader;
+import ru.reweu.game.loader.ModelLoaderReport;
 import ru.reweu.game.loader.ResourceLoader;
 import ru.reweu.game.render.BrdfLutTexture;
 import ru.reweu.game.render.DirectionalShadowMap;
@@ -21,6 +23,7 @@ import ru.reweu.game.render.InstancingDemoRenderer;
 import ru.reweu.game.render.ibl.EnvironmentIbl;
 import ru.reweu.game.render.ibl.IblEquirectLoader;
 import ru.reweu.game.render.LightingFrame;
+import ru.reweu.game.render.LitFrameUniformCache;
 import ru.reweu.game.render.RenderErrorLog;
 import ru.reweu.game.render.SceneLighting;
 import ru.reweu.game.render.SceneRenderer;
@@ -148,6 +151,13 @@ public class Game3d {
             glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
         }
         SkyRenderer.init();
+        ShaderProgram.addCleanupHook(GltfPbrRenderer::removeUniformCacheForProgram);
+        Mesh.setLandscapeTextureScale(GameConfig.LANDSCAPE_TEXTURE_SCALE);
+        GltfPbrRenderer.setConfig(new GltfRenderConfig(
+            GameConfig.GLTF_EXTENSION_FALLBACK_MIN_ROUGHNESS,
+            GameConfig.GLTF_DEBUG_DISABLE_NORMAL_MAP,
+            GameConfig.effectiveGltfDebugVisualizeMode()
+        ));
 
         fpsCounter = new FPSCounter(window);
         fpsCounter.init();
@@ -158,9 +168,20 @@ public class Game3d {
             "/shaders/vertex_shader.glsl",
             "/shaders/fragment_shader.glsl"
         );
-        shadowMap = new DirectionalShadowMap(GameConfig.effectiveShadowMapSize());
+        shadowMap = new DirectionalShadowMap(
+            GameConfig.effectiveShadowMapSize(),
+            GameConfig.effectiveShadowCascadeCount(),
+            GameConfig.SHADOW_CASCADE_LAMBDA,
+            GameConfig.FOV_DEGREES,
+            GameConfig.NEAR_PLANE,
+            GameConfig.FAR_PLANE,
+            SceneLighting.frame().sunDirection()
+        );
         brdfLutTexture = new BrdfLutTexture();
-        int equirectTex = IblEquirectLoader.createEquirectTexture(GameConfig.IBL_HDR_EQUIRECT);
+        java.io.File hdrFile = ResourceLoader.tryLoadResourceAsFile(GameConfig.IBL_HDR_EQUIRECT);
+        int equirectTex = IblEquirectLoader.createEquirectTexture(
+            hdrFile != null ? hdrFile.toPath() : null
+        );
         environmentIbl = new EnvironmentIbl(equirectTex);
         meshDepthShader = new ShaderProgram("/shaders/mesh_depth.vert", "/shaders/mesh_depth.frag");
         gltfDepthShader = new ShaderProgram("/shaders/pbr_gltf_shadow.vert", "/shaders/mesh_depth.frag");
@@ -169,7 +190,7 @@ public class Game3d {
             landscape.add(ModelLoader.loadModel("/models/landscape/landscape.obj", 1f));
         }
         if (GameConfig.isDumpAssimpReportOnStart()) {
-            ModelLoader.dumpAssimpSceneReport(GameConfig.FORD_MUSTANG_1965_GLB);
+            ModelLoaderReport.dumpAssimpSceneReport(GameConfig.FORD_MUSTANG_1965_GLB);
         }
         if (GameConfig.USE_GLTF_NATIVE_LOADER) {
             gltfShaderProgram = new ShaderProgram("/shaders/pbr_gltf.vert", "/shaders/pbr_gltf.frag");
@@ -188,7 +209,7 @@ public class Game3d {
                 ModelLoader.loadModel(GameConfig.FORD_MUSTANG_1965_GLB, GameConfig.FORD_MUSTANG_MODEL_SCALE));
             propInstancePositions.add(propPosition);
             if (GameConfig.isDumpAssimpReportOnStart()) {
-                ModelLoader.dumpLoadedMeshesSummary(propMeshes.get(propMeshes.size() - 1));
+                ModelLoaderReport.dumpLoadedMeshesSummary(propMeshes.get(propMeshes.size() - 1));
             }
         }
         if (GameConfig.DRAW_LANDSCAPE && !landscape.isEmpty()) {
@@ -236,6 +257,17 @@ public class Game3d {
 
         skyShaderProgram = new ShaderProgram("/shaders/sky_pass.vert", "/shaders/sky_pass.frag");
         worldRenderer = new WorldRenderer(worldShaderProgram, shadowMap, brdfLutTexture, environmentIbl);
+        worldRenderer.setAppConfig(
+            GameConfig.LANDSCAPE_TEXTURE_SCALE,
+            GameConfig.FAR_PLANE,
+            new LitFrameUniformCache.ShadowUniformConfig(
+                GameConfig.effectiveShadowBiasScaleForProgram(true),
+                GameConfig.effectiveShadowBiasScaleForProgram(false),
+                GameConfig.effectiveGltfShadowReceiveFloor(),
+                GameConfig.effectiveDiagnosticGltfNoIblOcclusion(),
+                GameConfig.effectiveShadowPcfUseShadingNormal()
+            )
+        );
         if (GameConfig.effectiveInstancingDemoEnabled()) {
             instancingDemo = new InstancingDemoRenderer();
         }
