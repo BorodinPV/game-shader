@@ -78,12 +78,13 @@ public final class GameInputController {
             return;
         }
         glfwGetCursorPos(window, cursorX, cursorY);
-        if (action == GLFW_PRESS) {
-            pauseMenu.handlePointerDown(cursorX[0], cursorY[0]);
-        } else if (action == GLFW_RELEASE) {
-            boolean slider = pauseMenu.handlePointerUp(cursorX[0], cursorY[0]);
-            if (slider || pauseMenu.handleClick(cursorX[0], cursorY[0])) {
-                RuntimeGraphicsSettings.persistCurrent();
+        switch (action) {
+            case GLFW_PRESS -> pauseMenu.handlePointerDown(cursorX[0], cursorY[0]);
+            case GLFW_RELEASE -> {
+                boolean slider = pauseMenu.handlePointerUp(cursorX[0], cursorY[0]);
+                if (slider || pauseMenu.handleClick(cursorX[0], cursorY[0])) {
+                    RuntimeGraphicsSettings.persistCurrent();
+                }
             }
         }
     }

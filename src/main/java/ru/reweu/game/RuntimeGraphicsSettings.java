@@ -65,27 +65,23 @@ public final class RuntimeGraphicsSettings {
     private boolean rainEnabled;
     private boolean fogEnabled;
 
-    /** Множитель slope-bias PCF для ландшафта (меню / рантайм; старт из env и дефолтов {@link GameConfig}). */
+    // СТАРЫЕ ПОЛЯ (нужны для getter/setter - ВОССТАНОВЛЕНЫ!)
     private float shadowBiasWorld;
-    /** То же для glTF PBR. */
     private float shadowBiasGltf;
-    /** Минимум {@code sh} прямого солнца на glTF ({@code u_shadowReceiveFloor}). */
     private float gltfShadowReceiveFloor;
-    /** PCF slope-bias от шейдинговой нормали на glTF ({@code GAME_SHADOW_PCF_USE_SHADING_NORMAL}). */
     private boolean gltfShadowPcfUseShadingNormal;
-
-    /**
-     * Дополнительные множители к базовому кадру из {@link ru.reweu.game.render.SceneLighting#frame(RuntimeGraphicsSettings)}
-     * (поверх env {@link GameConfig#effectiveExposureScale()} и т.д.). Все стартуют с 1.
-     */
     private float lightingExposureScale;
     private float lightingIblScale;
     private float lightingSunIntensityScale;
     private float lightingFillStrengthScale;
     private float lightingFillSpecularScale;
     private float lightingEmissiveBoostScale;
-    /** Ambient константа + цвета гемисферы (небо/земля) в world-шейдере. */
     private float lightingWorldIndirectScale;
+
+    // Объединённые конфиги (NEW - для новых методов)
+    private ShadowConfig shadowConfig;
+    private LightingScalesConfig lightingScales;
+    private LightingMode lightingMode;
 
     private final Vector3f toggleScratchAmb = new Vector3f();
     private final Vector3f toggleScratchSky = new Vector3f();
@@ -121,6 +117,16 @@ public final class RuntimeGraphicsSettings {
         lightingFillSpecularScale = 1f;
         lightingEmissiveBoostScale = 1f;
         lightingWorldIndirectScale = 1f;
+        
+        // Инициализация конфиг-объектов
+        shadowConfig = new ShadowConfig(shadowBiasWorld, shadowBiasGltf, 
+            gltfShadowReceiveFloor, gltfShadowPcfUseShadingNormal);
+        lightingScales = new LightingScalesConfig(
+            lightingExposureScale, lightingIblScale, lightingSunIntensityScale,
+            lightingFillStrengthScale, lightingFillSpecularScale,
+            lightingEmissiveBoostScale, lightingWorldIndirectScale
+        );
+        lightingMode = LightingMode.STUDIO;
     }
 
     public LightingFrame applyLightingToggles(LightingFrame f) {
@@ -364,5 +370,55 @@ public final class RuntimeGraphicsSettings {
 
     public void setLightingWorldIndirectScale(float lightingWorldIndirectScale) {
         this.lightingWorldIndirectScale = Math.max(0f, Math.min(2.5f, lightingWorldIndirectScale));
+    }
+
+    // ===== Getters/Setters для новых конфигурационных объектов =====
+
+    public ShadowConfig getShadowConfig() {
+        if (shadowConfig == null) {
+            shadowConfig = new ShadowConfig(shadowBiasWorld, shadowBiasGltf, 
+                gltfShadowReceiveFloor, gltfShadowPcfUseShadingNormal);
+        }
+        // Синхронизируем значения из конфига
+        shadowBiasWorld = shadowConfig.getBiasWorld();
+        shadowBiasGltf = shadowConfig.getBiasGltf();
+        gltfShadowReceiveFloor = shadowConfig.getGltfShadowReceiveFloor();
+        gltfShadowPcfUseShadingNormal = shadowConfig.isGltfShadowPcfUseShadingNormal();
+        return shadowConfig;
+    }
+
+    public LightingScalesConfig getLightingScalesConfig() {
+        if (lightingScales == null) {
+            lightingScales = new LightingScalesConfig(
+                lightingExposureScale, lightingIblScale, lightingSunIntensityScale,
+                lightingFillStrengthScale, lightingFillSpecularScale,
+                lightingEmissiveBoostScale, lightingWorldIndirectScale
+            );
+        }
+        // Синхронизируем значения из конфига
+        lightingExposureScale = lightingScales.getExposureScale();
+        lightingIblScale = lightingScales.getIblScale();
+        lightingSunIntensityScale = lightingScales.getSunIntensityScale();
+        lightingFillStrengthScale = lightingScales.getFillStrengthScale();
+        lightingFillSpecularScale = lightingScales.getFillSpecularScale();
+        lightingEmissiveBoostScale = lightingScales.getEmissiveBoostScale();
+        lightingWorldIndirectScale = lightingScales.getWorldIndirectScale();
+        return lightingScales;
+    }
+
+    public LightingMode getLightingMode() {
+        return lightingMode != null ? lightingMode : LightingMode.STUDIO;
+    }
+
+    public void setLightingMode(LightingMode mode) {
+        this.lightingMode = mode;
+        if (mode != null) {
+            sunLightEnabled = mode.isSunLightEnabled();
+            shadowsEnabled = mode.isShadowsEnabled();
+            fillLightEnabled = mode.isFillLightEnabled();
+            iblEnabled = mode.isIblEnabled();
+            ambientConstantEnabled = mode.isAmbientConstantEnabled();
+            hemisphereAmbientEnabled = mode.isHemisphereAmbientEnabled();
+        }
     }
 }

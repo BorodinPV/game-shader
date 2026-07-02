@@ -90,26 +90,18 @@ public class Camera {
         frontOnXZ.set(front.x, 0f, front.z).normalize();
         rightOnXZ.set(right.x, 0f, right.z).normalize();
 
-        if (key == GLFW_KEY_W) {
-            moveDelta.set(frontOnXZ).mul(velocity);
-            position.add(moveDelta);
-            viewDirty = true;
+        switch (key) {
+            case GLFW_KEY_W -> moveInDirection(frontOnXZ, velocity);
+            case GLFW_KEY_S -> moveInDirection(frontOnXZ, -velocity);
+            case GLFW_KEY_A -> moveInDirection(rightOnXZ, -velocity);
+            case GLFW_KEY_D -> moveInDirection(rightOnXZ, velocity);
         }
-        if (key == GLFW_KEY_S) {
-            moveDelta.set(frontOnXZ).mul(velocity);
-            position.sub(moveDelta);
-            viewDirty = true;
-        }
-        if (key == GLFW_KEY_A) {
-            moveDelta.set(rightOnXZ).mul(velocity);
-            position.sub(moveDelta);
-            viewDirty = true;
-        }
-        if (key == GLFW_KEY_D) {
-            moveDelta.set(rightOnXZ).mul(velocity);
-            position.add(moveDelta);
-            viewDirty = true;
-        }
+    }
+
+    private void moveInDirection(Vector3f direction, float velocity) {
+        moveDelta.set(direction).mul(velocity);
+        position.add(moveDelta);
+        viewDirty = true;
     }
 
     /** Прыжок — задаёт начальную вертикальную скорость (только если персонаж на земле). */

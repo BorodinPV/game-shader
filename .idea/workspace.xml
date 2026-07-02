@@ -4,15 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4f6864b3-ecff-4661-a787-27435afc488a" name="Changes" comment="">
+    <list default="true" id="4f6864b3-ecff-4661-a787-27435afc488a" name="Changes" comment="Добавил кривой туман">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/Camera.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/Camera.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/Game3d.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/Game3d.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/GameInputController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/GameInputController.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/RuntimeGraphicsSettings.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/RuntimeGraphicsSettings.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/RuntimeGraphicsSettingsPersistence.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/RuntimeGraphicsSettingsPersistence.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/gui/PauseMenu.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/gui/PauseMenu.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ru/reweu/game/render/GameRenderPipeline.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/reweu/game/render/GameRenderPipeline.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/shaders/fragment_shader.glsl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/shaders/fragment_shader.glsl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/shaders/pbr_gltf.frag" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/shaders/pbr_gltf.frag" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -20,7 +17,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="112" />
+    <option name="cachedIndexableFilesCount" value="63" />
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -46,23 +43,23 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.5774085569169225" />
-      <entry key="MS500" value="3.6316310679741015" />
-      <entry key="S2" value="10.352879724817733" />
-      <entry key="S5" value="15.39229532267731" />
-      <entry key="S10" value="18.23087446588913" />
-      <entry key="S30" value="32.98844646023948" />
-      <entry key="S60" value="66.35378741710954" />
-      <entry key="M2" value="132.76812487303226" />
-      <entry key="M5" value="269.7612636371508" />
-      <entry key="M10" value="408.9800134322587" />
-      <entry key="M15" value="516.2672560837001" />
-      <entry key="M30" value="790.2916127804499" />
-      <entry key="H1" value="1245.0931670368695" />
-      <entry key="H2" value="1861.036206396881" />
-      <entry key="H4" value="2454.9417377132913" />
-      <entry key="D1" value="3245.9450669473395" />
-      <entry key="W1" value="3421.3756998134363" />
+      <entry key="MS100" value="1.5555661870284254" />
+      <entry key="MS500" value="4.491091503581854" />
+      <entry key="S2" value="12.250870910454875" />
+      <entry key="S5" value="24.02695360425197" />
+      <entry key="S10" value="34.83449565227029" />
+      <entry key="S30" value="47.33263762485362" />
+      <entry key="S60" value="53.769979300991494" />
+      <entry key="M2" value="74.148705515448" />
+      <entry key="M5" value="176.9476931903738" />
+      <entry key="M10" value="356.5022893861764" />
+      <entry key="M15" value="524.0360573062301" />
+      <entry key="M30" value="963.2483290641712" />
+      <entry key="H1" value="1640.426281128889" />
+      <entry key="H2" value="2531.6036124361644" />
+      <entry key="H4" value="3426.1750089653233" />
+      <entry key="D1" value="4695.525514794035" />
+      <entry key="W1" value="4989.275847993607" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
@@ -84,23 +81,23 @@
       <entry key="W1" value="0.0" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.5335513512095758" />
-      <entry key="MS500" value="3.6108554154961734" />
-      <entry key="S2" value="10.338521683940876" />
-      <entry key="S5" value="15.383871632275216" />
-      <entry key="S10" value="18.225916446935482" />
-      <entry key="S30" value="32.985505727864826" />
-      <entry key="S60" value="66.35085661789154" />
-      <entry key="M2" value="132.76519355378315" />
-      <entry key="M5" value="269.7588553615837" />
-      <entry key="M10" value="408.97816559419533" />
-      <entry key="M15" value="516.2656920590603" />
-      <entry key="M30" value="790.2903970259014" />
-      <entry key="H1" value="1245.0921670214498" />
-      <entry key="H2" value="1861.0354190627118" />
-      <entry key="H4" value="2454.9412001392084" />
-      <entry key="D1" value="3245.9449447664415" />
-      <entry key="W1" value="3421.3756813178375" />
+      <entry key="MS100" value="1.4958642832419593" />
+      <entry key="MS500" value="4.457031641364746" />
+      <entry key="S2" value="12.226482626690546" />
+      <entry key="S5" value="24.00710753118668" />
+      <entry key="S10" value="34.81981228962194" />
+      <entry key="S30" value="47.32587956055794" />
+      <entry key="S60" value="53.76610084878322" />
+      <entry key="M2" value="74.14585307667953" />
+      <entry key="M5" value="176.94469839390695" />
+      <entry key="M10" value="356.4990677768312" />
+      <entry key="M15" value="524.0328070857547" />
+      <entry key="M30" value="963.2453987376958" />
+      <entry key="H1" value="1640.4239845929912" />
+      <entry key="H2" value="2531.601980843935" />
+      <entry key="H4" value="3426.173960788138" />
+      <entry key="D1" value="4695.525285912706" />
+      <entry key="W1" value="4989.275813511682" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -112,39 +109,39 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Application.Game3d.executor": "Run",
-    "Maven.game [clean,install].executor": "Run",
-    "Maven.game [compile,exec:java].executor": "Run",
-    "Maven.game [compile].executor": "Run",
-    "Maven.game [deploy].executor": "Run",
-    "Maven.game [exec:java].executor": "Run",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.MCP Project settings loaded": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "codeWithMe.voiceChat.enabledByDefault": "false",
-    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "master",
-    "junie.onboarding.icon.badge.shown": "true",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "C:/Users/pc/IdeaProjects/game-shader/src/main/resources/models/landscape",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "project.structure.last.edited": "Project",
-    "project.structure.proportion": "0.0",
-    "project.structure.side.proportion": "0.0",
-    "settings.editor.selected.configurable": "reference.settings.project.maven.runner",
-    "to.speed.mode.migration.done": "true",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Application.Game3d.executor&quot;: &quot;Run&quot;,
+    &quot;Maven.game [clean,install].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.game [compile,exec:java].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.game [compile].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.game [deploy].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.game [exec:java].executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/pc/IdeaProjects/game-shader/src/main/resources/models/landscape&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;ml.llm.LLMThirdPartyAiProvidersConfigurable&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\pc\IdeaProjects\game-shader\src\main\resources\models\landscape" />
@@ -207,7 +204,22 @@
       <updated>1782044957187</updated>
       <workItem from="1782044959191" duration="5716000" />
       <workItem from="1782051610249" duration="12150000" />
+      <workItem from="1782064072467" duration="2135000" />
+      <workItem from="1782128368790" duration="64000" />
+      <workItem from="1782760269158" duration="173000" />
+      <workItem from="1782760475003" duration="945000" />
+      <workItem from="1782953265610" duration="2091000" />
+      <workItem from="1782955982682" duration="768000" />
     </task>
+    <task id="LOCAL-00001" summary="Добавил кривой туман">
+      <option name="closed" value="true" />
+      <created>1782064317273</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1782064317273</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -223,6 +235,10 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Добавил кривой туман" />
+    <option name="LAST_COMMIT_MESSAGE" value="Добавил кривой туман" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

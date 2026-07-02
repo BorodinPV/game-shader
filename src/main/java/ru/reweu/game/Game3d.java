@@ -54,6 +54,11 @@ import static org.lwjgl.opengl.GL13C.GL_MULTISAMPLE;
 import static org.lwjgl.opengl.GL32.GL_TEXTURE_CUBE_MAP_SEAMLESS;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+import ru.reweu.game.Cleanable;
+
 public class Game3d {
 
     private long window;
@@ -477,50 +482,46 @@ public class Game3d {
 
     private void cleanup() {
         RuntimeGraphicsSettings.persistCurrent();
-        if (pauseMenu != null) {
-            pauseMenu.cleanup();
-        }
-        if (fpsCounter != null) {
-            fpsCounter.cleanup();
-        }
+
+        List<Cleanable> cleanables = new ArrayList<>();
+
+        // Объекты с .cleanup()
+        cleanables.add(asCleanable(pauseMenu, PauseMenu::cleanup));
+        cleanables.add(asCleanable(fpsCounter, FPSCounter::cleanup));
+        cleanables.add(asCleanable(gltfShaderProgram, ShaderProgram::cleanup));
+        cleanables.add(asCleanable(meshDepthShader, ShaderProgram::cleanup));
+        cleanables.add(asCleanable(gltfDepthShader, ShaderProgram::cleanup));
+        cleanables.add(asCleanable(skyShaderProgram, ShaderProgram::cleanup));
+        cleanables.add(asCleanable(shadowMap, DirectionalShadowMap::cleanup));
+        cleanables.add(asCleanable(brdfLutTexture, BrdfLutTexture::cleanup));
+        cleanables.add(asCleanable(environmentIbl, EnvironmentIbl::cleanup));
+        cleanables.add(asCleanable(rayTraceRenderer, RayTraceRenderer::cleanup));
+        cleanables.add(asCleanable(instancingDemo, InstancingDemoRenderer::cleanup));
+        cleanables.add(asCleanable(rainRenderer, RainRenderer::cleanup));
+        cleanables.add(asCleanable(worldShaderProgram, ShaderProgram::cleanup));
+
+        // GltfScene — отдельно, т.к. их список
         for (GltfScene gs : gltfScenes) {
-            if (gs != null) {
-                gs.cleanup();
+            cleanables.add(asCleanable(gs, GltfScene::cleanup));
+        }
+        gltfScenes.clear(); // остаётся — очистка списка
+
+        // Статические вызовы — обёртываем явно
+        cleanables.add(() -> SkyRenderer.cleanup());
+
+        // Выполняем все cleanup() безопасно
+        for (Cleanable c : cleanables) {
+            c.cleanup();
+        }
+    }
+
+    // Вспомогательный метод: создаёт Cleanable из объекта и метода
+    private <T> Cleanable asCleanable(T obj, Consumer<T> cleanupFn) {
+        return () -> {
+            if (obj != null) {
+                cleanupFn.accept(obj);
             }
-        }
-        gltfScenes.clear();
-        if (gltfShaderProgram != null) {
-            gltfShaderProgram.cleanup();
-        }
-        if (meshDepthShader != null) {
-            meshDepthShader.cleanup();
-        }
-        if (gltfDepthShader != null) {
-            gltfDepthShader.cleanup();
-        }
-        if (skyShaderProgram != null) {
-            skyShaderProgram.cleanup();
-        }
-        SkyRenderer.cleanup();
-        if (shadowMap != null) {
-            shadowMap.cleanup();
-        }
-        if (brdfLutTexture != null) {
-            brdfLutTexture.cleanup();
-        }
-        if (environmentIbl != null) {
-            environmentIbl.cleanup();
-        }
-        if (rayTraceRenderer != null) {
-            rayTraceRenderer.cleanup();
-        }
-        if (instancingDemo != null) {
-            instancingDemo.cleanup();
-        }
-        if (rainRenderer != null) {
-            rainRenderer.cleanup();
-        }
-        worldShaderProgram.cleanup();
+        };
     }
 
     private void mouseButtonCallback(long win, int button, int action, int mods) {
@@ -530,14 +531,13 @@ public class Game3d {
         double[] x = new double[1];
         double[] y = new double[1];
         glfwGetCursorPos(win, x, y);
-        if (action == GLFW_PRESS) {
-            pauseMenu.handlePointerDown(x[0], y[0]);
-        } else if (action == GLFW_RELEASE) {
-            boolean slider = pauseMenu.handlePointerUp(x[0], y[0]);
-            if (slider) {
-                RuntimeGraphicsSettings.persistCurrent();
-            } else if (pauseMenu.handleClick(x[0], y[0])) {
-                RuntimeGraphicsSettings.persistCurrent();
+        switch (action) {
+            case GLFW_PRESS -> pauseMenu.handlePointerDown(x[0], y[0]);
+            case GLFW_RELEASE -> {
+                boolean slider = pauseMenu.handlePointerUp(x[0], y[0]);
+                if (slider || pauseMenu.handleClick(x[0], y[0])) {
+                    RuntimeGraphicsSettings.persistCurrent();
+                }
             }
         }
     }
