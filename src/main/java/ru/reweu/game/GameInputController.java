@@ -5,7 +5,7 @@ import ru.reweu.game.gui.PauseMenu;
 import static org.lwjgl.glfw.GLFW.*;
 
 /**
- * Ввод: WASD, ESC-меню, мышь для камеры и UI паузы.
+ * Ввод: WASD + shift (спринт), пробел (прыжок), ESC (меню), мышь для камеры и UI паузы.
  */
 public final class GameInputController {
 
@@ -20,6 +20,7 @@ public final class GameInputController {
     private boolean firstMouse = true;
     private boolean menuOpen;
     private boolean escKeyDown;
+    private boolean spaceKeyDown;
 
     public boolean isMenuOpen() {
         return menuOpen;
@@ -34,6 +35,14 @@ public final class GameInputController {
                     camera.processKeyboard(key, deltaTime, sprinting);
                 }
             }
+
+            boolean space = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
+            if (space && !spaceKeyDown) {
+                spaceKeyDown = true;
+                camera.jump();
+            } else if (!space) {
+                spaceKeyDown = false;
+            }
         }
 
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
@@ -45,7 +54,6 @@ public final class GameInputController {
                     firstMouse = true;
                 } else {
                     pauseMenu.resetPointerState();
-                    RuntimeGraphicsSettings.persistCurrent();
                 }
             }
         } else {

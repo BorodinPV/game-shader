@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.joml.Vector3f;
 import ru.reweu.game.gltf.GltfPbrRenderer;
+import ru.reweu.game.gltf.GltfRenderConfig;
 import ru.reweu.game.gltf.GltfScene;
 import ru.reweu.game.loader.Mesh;
 import ru.reweu.game.loader.ModelLoader;
@@ -34,7 +35,7 @@ public final class GameSceneAssets implements AutoCloseable {
         this.terrain = terrain;
     }
 
-    public static GameSceneAssets load() {
+    public static GameSceneAssets load(GltfRenderConfig config) {
         List<Mesh[]> landscape = new ArrayList<>();
         List<Mesh[]> propMeshes = new ArrayList<>();
         List<Vector3f> propInstancePositions = new ArrayList<>();
@@ -54,9 +55,9 @@ public final class GameSceneAssets implements AutoCloseable {
             GltfPbrRenderer.initJointBlock(gltfShaderProgram);
             try {
                 Path mustangPath = ResourceLoader.loadResourceAsFile(GameConfig.FORD_MUSTANG_1965_GLB).toPath();
-                gltfScenes.add(GltfScene.load(mustangPath));
+                gltfScenes.add(GltfScene.load(mustangPath, config));
                 Path toyotaPath = ResourceLoader.loadResourceAsFile(GameConfig.TOYOTA_AE86_GLB).toPath();
-                gltfScenes.add(GltfScene.load(toyotaPath));
+                gltfScenes.add(GltfScene.load(toyotaPath, config));
             } catch (Exception e) {
                 RenderErrorLog.warn("Failed to load glTF cars (Mustang, AE86)", e);
                 throw new RuntimeException("Failed to load glTF cars", e);

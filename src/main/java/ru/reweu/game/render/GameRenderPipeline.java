@@ -9,7 +9,7 @@ import ru.reweu.game.render.ibl.IblEquirectLoader;
 import ru.reweu.game.render.rt.RayTraceRenderer;
 
 /**
- * Шейдеры, IBL, тени и {@link SceneRenderer} — инициализация и освобождение ресурсов.
+ * Шейдеры, IBL, тени, дождь и {@link SceneRenderer} — инициализация и освобождение ресурсов.
  */
 public final class GameRenderPipeline implements AutoCloseable {
 
@@ -24,6 +24,7 @@ public final class GameRenderPipeline implements AutoCloseable {
     private final SceneRenderer sceneRenderer;
     private final RayTraceRenderer rayTraceRenderer;
     private final InstancingDemoRenderer instancingDemo;
+    private final RainRenderer rainRenderer;
 
     private GameRenderPipeline(
         ShaderProgram worldShaderProgram,
@@ -36,7 +37,8 @@ public final class GameRenderPipeline implements AutoCloseable {
         WorldRenderer worldRenderer,
         SceneRenderer sceneRenderer,
         RayTraceRenderer rayTraceRenderer,
-        InstancingDemoRenderer instancingDemo
+        InstancingDemoRenderer instancingDemo,
+        RainRenderer rainRenderer
     ) {
         this.worldShaderProgram = worldShaderProgram;
         this.meshDepthShader = meshDepthShader;
@@ -49,6 +51,7 @@ public final class GameRenderPipeline implements AutoCloseable {
         this.sceneRenderer = sceneRenderer;
         this.rayTraceRenderer = rayTraceRenderer;
         this.instancingDemo = instancingDemo;
+        this.rainRenderer = rainRenderer;
     }
 
     public static GameRenderPipeline create(GameSceneAssets scene) {
@@ -95,6 +98,8 @@ public final class GameRenderPipeline implements AutoCloseable {
         if (GameConfig.effectiveInstancingDemoEnabled()) {
             instancingDemo = new InstancingDemoRenderer();
         }
+
+        RainRenderer rainRenderer = new RainRenderer();
 
         RayTraceRenderer rayTraceRenderer = null;
         if (GameConfig.RAY_TRACE_ENABLED) {
@@ -143,7 +148,8 @@ public final class GameRenderPipeline implements AutoCloseable {
             worldRenderer,
             sceneRenderer,
             rayTraceRenderer,
-            instancingDemo
+            instancingDemo,
+            rainRenderer
         );
     }
 
@@ -151,8 +157,23 @@ public final class GameRenderPipeline implements AutoCloseable {
         return sceneRenderer;
     }
 
+    public WorldRenderer worldRenderer() {
+        return worldRenderer;
+    }
+
+    public RainRenderer rainRenderer() {
+        return rainRenderer;
+    }
+
+    public DirectionalShadowMap shadowMap() {
+        return shadowMap;
+    }
+
     @Override
     public void close() {
+        if (rainRenderer != null) {
+            rainRenderer.cleanup();
+        }
         if (meshDepthShader != null) {
             meshDepthShader.cleanup();
         }
