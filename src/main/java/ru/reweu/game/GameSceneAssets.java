@@ -40,6 +40,7 @@ public final class GameSceneAssets implements AutoCloseable {
         List<Mesh[]> propMeshes = new ArrayList<>();
         List<Vector3f> propInstancePositions = new ArrayList<>();
         Vector3f mustangPosition = new Vector3f();
+        Vector3f toyotaPosition = new Vector3f();
         List<GltfScene> gltfScenes = new ArrayList<>();
         ShaderProgram gltfShaderProgram = null;
 
@@ -55,9 +56,9 @@ public final class GameSceneAssets implements AutoCloseable {
             GltfPbrRenderer.initJointBlock(gltfShaderProgram);
             try {
                 Path mustangPath = ResourceLoader.loadResourceAsFile(GameConfig.FORD_MUSTANG_1965_GLB).toPath();
-                gltfScenes.add(GltfScene.load(mustangPath, config));
+                gltfScenes.add(GltfScene.load(mustangPath));
                 Path toyotaPath = ResourceLoader.loadResourceAsFile(GameConfig.TOYOTA_AE86_GLB).toPath();
-                gltfScenes.add(GltfScene.load(toyotaPath, config));
+                gltfScenes.add(GltfScene.load(toyotaPath));
             } catch (Exception e) {
                 RenderErrorLog.warn("Failed to load glTF cars (Mustang, AE86)", e);
                 throw new RuntimeException("Failed to load glTF cars", e);
@@ -84,6 +85,7 @@ public final class GameSceneAssets implements AutoCloseable {
         assets.propMeshes.addAll(propMeshes);
         assets.propInstancePositions.addAll(propInstancePositions);
         assets.mustangPosition.set(mustangPosition);
+        assets.toyotaPosition.set(toyotaPosition);
         assets.gltfScenes.addAll(gltfScenes);
         assets.gltfShaderProgram = gltfShaderProgram;
         assets.placeCarsOnTerrain();
